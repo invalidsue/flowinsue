@@ -443,6 +443,121 @@
   .red-char { transition: all .15s; cursor: pointer; }
   .red-char.hit { color: var(--red-hi); text-shadow: 0 0 10px var(--red); }
 
+  /* ===== 翻转过场动画（内部入口触发，全屏覆盖；所有样式限定在 #flip 内避免污染） ===== */
+  #flip {
+    --fs-base: 25px;
+    position: fixed; inset: 0; z-index: 150;
+    display: none;
+    font-family: var(--mono);
+    color: #e8e8e8;
+    cursor: default; user-select: none;
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(193,18,31,.28), transparent 70%),
+      radial-gradient(ellipse 40% 40% at 15% 110%, rgba(122,12,19,.25), transparent 70%),
+      repeating-linear-gradient(0deg, rgba(193,18,31,.05) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(193,18,31,.05) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 2px, transparent 2px 4px),
+      linear-gradient(160deg, #2b060a 0%, #16070a 38%, #0a0a0a 68%, #050505 100%);
+  }
+  #flip.on { display: block; }
+  #flip .fp-artifacts { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  #flip .artifact { position: fixed; color: #fff; font-weight: 700; white-space: nowrap; }
+  #flip .fp-lines {
+    position: absolute; inset: 0; z-index: 2;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 28px; pointer-events: none;
+    padding: 0 6vw;
+  }
+  #flip .ln {
+    color: var(--red-hi);
+    font-size: var(--fs-base);
+    letter-spacing: 2px;
+    line-height: 2.1;
+    text-align: center;
+    max-width: 780px;
+    animation: fp-lnIn .35s ease both;
+  }
+  @keyframes fp-lnIn { from { opacity: 0; } to { opacity: 1; } }
+  #flip .ln .rg, #flip .ln .np, #flip .ln .yw, #flip .ln .body-w { transition: opacity .8s ease; }
+  /* 特殊标注字：白色 + 字上黑色渐变圆形（中心黑 → 周围透明，小于字号） */
+  #flip .blk {
+    display: inline-block; /* transform 对 inline 无效，下坠动画需要 */
+    position: relative;
+    color: #fff; font-size: calc(var(--fs-base) + 5px); font-weight: 500;
+    transition: transform .18s ease-in;
+  }
+  #flip .self-w {
+    position: relative; display: inline-block;
+    color: #fff; font-weight: 700; font-size: calc(var(--fs-base) + 5px);
+  }
+  #flip .yw {
+    position: relative; display: inline-block;
+    color: #fff; font-weight: 700; font-size: inherit;
+  }
+  #flip .blk::before, #flip .yw::before, #flip .artifact::before,
+  #flip .big::before, #flip .self-expand::before, #flip .self-w::before {
+    content: '';
+    position: absolute; left: 50%; top: 50%;
+    transform: translate(-50%, -50%);
+    width: .864em; height: .864em;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(0,0,0,.88) 0%, rgba(0,0,0,.55) 45%, transparent 72%);
+    z-index: 2; /* 压在字上面 */
+    pointer-events: none;
+  }
+  #flip .np { display: inline-block; transition: transform 1s cubic-bezier(.4,0,.2,1); }
+  #flip .body-w { display: inline-block; }
+  #flip .ln.inv { transform: rotate(180deg); }
+  #flip .rot-cw i, #flip .rot-ccw i { display: inline-block; font-style: normal; }
+  #flip .rot-cw i { transform: rotate(90deg); }
+  #flip .rot-ccw i { transform: rotate(-90deg); }
+  /* "自我"膨胀：JS 阶梯驱动（点状放大 + 花屏联动） */
+  #flip .self-expand {
+    position: fixed; z-index: 4;
+    color: #fff; font-weight: 900;
+    transform-origin: center center;
+    transition: transform .18s ease-in;
+    pointer-events: none; white-space: nowrap;
+  }
+  /* 超大白字（漆黑 / 翻转） */
+  #flip .fp-bigword {
+    position: absolute; inset: 0; z-index: 3;
+    display: none; align-items: center; justify-content: center;
+    pointer-events: none;
+  }
+  #flip .fp-bigword.show { display: flex; }
+  #flip .big {
+    position: relative; display: inline-block;
+    color: #fff; font-weight: 900;
+    font-size: min(33vw, 250px);
+    letter-spacing: 8px;
+    line-height: 1;
+  }
+  #flip .big::before { width: .72em; height: .72em; }
+  #flip .big .fan { display: inline-block; transform: rotate(180deg); }
+  /* 花屏（全屏马赛克色块，不透底；可重叠调用） */
+  #flip .fp-glitch {
+    position: fixed; inset: 0; z-index: 10;
+    display: none; background: #050505;
+    overflow: hidden; pointer-events: none;
+  }
+  #flip .g-b { position: absolute; opacity: 1; }
+  #flip .g-band { position: absolute; left: 0; right: 0; opacity: 1; }
+  /* 跳过按钮 */
+  #flip .fp-skip {
+    position: fixed; right: 18px; top: 14px; z-index: 20;
+    color: rgba(255,255,255,.3); font-size: 11px; letter-spacing: 2px;
+    border: 1px solid rgba(255,255,255,.15); padding: 5px 12px;
+    cursor: pointer; display: none;
+  }
+  #flip .fp-skip:hover { color: rgba(255,255,255,.7); border-color: rgba(255,255,255,.4); }
+  @media (max-width: 720px) {
+    #flip { --fs-base: 20px; }
+    #flip .ln { letter-spacing: 1px; }
+  }
+
   /* 边栏架构：进入时隐藏 main，边栏独占整行并贴左边 */
   .sidebar-app { display: none; flex: 1; min-height: 0; }
   .sidebar-app.on { display: flex; }
@@ -902,10 +1017,67 @@
   }
   @keyframes blink { 50% { opacity: 0; } }
 
+  /* ===== 窄屏适配（手机）：不改动桌面端任何样式 ===== */
   @media (max-width: 720px) {
+    /* 页头 */
+    header { padding: 14px 16px; }
+    .title-block h1 { font-size: 16px; letter-spacing: 2px; }
+    .title-block p { font-size: 10px; margin-top: 4px; }
+    .clearance { display: none; }
+
     main { padding: 24px 20px 60px; }
+
+    /* 欢迎页 / 错误页文字 */
+    .welcome-text { font-size: 22px; letter-spacing: 2px; }
+    .err-text, .secret-line { width: 88vw; }
+
+    /* 回退按钮缩小，避免在窄屏压住标题 */
+    .back-btn { font-size: 16px; padding: 2px 6px; }
+
+    /* 文档页 */
+    .overview-doc, .lead-doc { width: 100%; padding: 20px 4px; }
     .lead-profile { flex-direction: column; }
     .lead-portrait { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+    img.lead-portrait { height: auto; }
+
+    /* 边栏改为顶部横条，不再占竖栏 */
+    .sidebar-app.on { flex-direction: column; }
+    .side-nav {
+      width: 100%;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      overflow: visible;
+    }
+    .side-title { display: none; }
+    .side-item {
+      width: 50%;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+      padding: 12px 6px;
+      font-size: 13px;
+      letter-spacing: 1px;
+      text-align: center;
+    }
+    .side-item.active { border-left-color: transparent; border-bottom-color: var(--red); }
+    .side-content { padding: 24px 16px 60px; }
+
+    /* 异想体档案：左右分栏改为上下堆叠 */
+    .ab-wrap { flex-direction: column; }
+    .ab-panel { width: 100%; }
+
+    /* 事故通告卡片 */
+    .news-card { padding: 20px 16px; }
+    .news-title { font-size: 19px; letter-spacing: 2px; }
+
+    /* 日记 */
+    .dr-format { padding: 14px; margin-bottom: 40px; }
+    .diary-nav { flex-wrap: wrap; gap: 10px; }
+
+    /* 底栏 */
+    footer { padding: 0 16px; font-size: 9px; letter-spacing: 1px; }
   }
 </style>
 </head>
@@ -1282,6 +1454,16 @@
 </div>
 </div>
 
+<!-- 翻转过场动画（内部入口：花屏后全屏播放，结束/跳过后进入边栏）
+     注意：必须放在 .layout 之外做 body 直属子元素，否则隐藏 .layout 时它会被连坐 display:none -->
+<div id="flip">
+  <div class="fp-artifacts"></div>
+  <div class="fp-lines"></div>
+  <div class="fp-bigword"></div>
+  <div class="fp-glitch"></div>
+  <div class="fp-skip">跳过 ▸</div>
+</div>
+
 <footer>
   <span>ZIRP CENTRE — INTERNAL DOCUMENT</span>
   <span class="blink">● REC</span>
@@ -1345,7 +1527,8 @@
   // 依据居中文档的实际位置放置回退按钮：紧贴文档左边缘外侧，与第一行标题水平
   function placeBackBtn() {
     leadBack.style.top = (leadDoc.offsetTop + 40) + 'px';
-    leadBack.style.left = (leadDoc.offsetLeft - 40) + 'px';
+    // 窄屏下文档占满宽度时，防止按钮被推到屏幕外（保底留 8px）
+    leadBack.style.left = Math.max(leadDoc.offsetLeft - 40, 8) + 'px';
   }
   leadBack.addEventListener('click', function (e) {
     e.stopPropagation();
@@ -1434,18 +1617,13 @@
         span.classList.add('hit');
         if (charProgress === 4) {
           entered = true;
-          // 花屏特效后切换架构
+          // 花屏特效 → 翻转过场动画 → 切换架构
           spawnGlitchBlocks();
           glitchOverlay.classList.add('on');
           setTimeout(function () {
-            showOnly(null);
-            document.querySelector('main').style.display = 'none';
-            sidebarApp.classList.add('on');
-            switchPage('ab');
             glitchOverlay.classList.remove('on');
             glitchOverlay.querySelectorAll('.glitch-block').forEach(function (b) { b.remove(); });
-            // 权限等级降为 3
-            document.getElementById('clearance-level').textContent = 'LEVEL 3 / AMBER';
+            startFlipTransition();
           }, 1300);
         }
       } else {
@@ -1473,8 +1651,346 @@
     }
   }
 
+  /* ================= 翻转过场动画 ================= */
+  var flipEl = document.getElementById('flip');
+  var fpLines = flipEl.querySelector('.fp-lines');
+  var fpArtifacts = flipEl.querySelector('.fp-artifacts');
+  var fpBigword = flipEl.querySelector('.fp-bigword');
+  var fpGlitchEl = flipEl.querySelector('.fp-glitch');
+  var fpSkipBtn = flipEl.querySelector('.fp-skip');
+  var flipToken = 0;      // 跳过/作废旧时间轴
+  var flipDoneCb = null;  // 结束或跳过后的回调（进入边栏）
+  var fpSleep = function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+  function fpAlive(t) { return t === flipToken; }
+
+  function fpSetLine(html, cls) { fpLines.innerHTML = ''; fpAddLine(html, cls); }
+  function fpAddLine(html, cls) {
+    var d = document.createElement('div');
+    d.className = 'ln' + (cls ? ' ' + cls : '');
+    d.innerHTML = html;
+    fpLines.appendChild(d);
+    return d;
+  }
+  function fpClearLines() { fpLines.innerHTML = ''; }
+
+  /* 逐行放大：从"自我"之后开始，每句比上一句大 3px */
+  var fpGrow = 0;
+  function fpResetGrow() {
+    fpGrow = parseInt(getComputedStyle(flipEl).getPropertyValue('--fs-base'), 10) + 3;
+  }
+  function fpSetLineGrow(html, cls) {
+    fpLines.innerHTML = '';
+    var d = fpAddLine(html, cls);
+    d.style.fontSize = fpGrow + 'px';
+    fpGrow += 3;
+    return d;
+  }
+
+  /* 打字机（光标复用全局 blink 动画） */
+  function fpTypeLine(text, t) {
+    return new Promise(function (resolve) {
+      var d = document.createElement('div');
+      d.className = 'ln';
+      var cur = document.createElement('span');
+      var cursor = document.createElement('span');
+      cursor.textContent = '▌';
+      cursor.style.animation = 'blink 1s step-end infinite';
+      d.appendChild(cur); d.appendChild(cursor);
+      fpLines.appendChild(d);
+      var i = 0;
+      var iv = setInterval(function () {
+        if (!fpAlive(t)) { clearInterval(iv); resolve(); return; }
+        if (i >= text.length) {
+          clearInterval(iv);
+          setTimeout(function () { cursor.remove(); resolve(); }, 250);
+          return;
+        }
+        cur.textContent += text[i++];
+      }, 100);
+    });
+  }
+
+  /* 花屏（可重叠调用） */
+  var fpGlitchCount = 0, fpGlitchIv = null;
+  var FP_GLITCH_COLORS = ['#c1121f', '#1a4d8f', '#ffffff', '#000000', '#1fa33c', '#d7c000', '#7a1fa3'];
+  function fpGlitch(ms) {
+    fpGlitchCount++;
+    if (fpGlitchCount === 1) {
+      fpGlitchEl.innerHTML = '';
+      for (var i = 0; i < 160; i++) {
+        var b = document.createElement('div');
+        b.className = 'g-b';
+        b.style.left = Math.random() * 100 + '%';
+        b.style.top = Math.random() * 100 + '%';
+        b.style.width = (30 + Math.random() * 260) + 'px';
+        b.style.height = (10 + Math.random() * 100) + 'px';
+        b.style.background = FP_GLITCH_COLORS[Math.floor(Math.random() * FP_GLITCH_COLORS.length)];
+        fpGlitchEl.appendChild(b);
+      }
+      for (var k = 0; k < 7; k++) {
+        var band = document.createElement('div');
+        band.className = 'g-band';
+        band.style.top = (k * 14 + Math.random() * 6) + '%';
+        band.style.height = (4 + Math.random() * 9) + '%';
+        band.style.background = FP_GLITCH_COLORS[Math.floor(Math.random() * FP_GLITCH_COLORS.length)];
+        fpGlitchEl.appendChild(band);
+      }
+      fpGlitchEl.style.display = 'block';
+      fpGlitchIv = setInterval(function () {
+        fpGlitchEl.querySelectorAll('.g-b, .g-band').forEach(function (x) {
+          x.style.opacity = Math.random() < 0.5 ? '1' : '0';
+          if (Math.random() < 0.25) {
+            x.style.background = FP_GLITCH_COLORS[Math.floor(Math.random() * FP_GLITCH_COLORS.length)];
+          }
+        });
+      }, 70);
+    }
+    setTimeout(function () {
+      fpGlitchCount--;
+      if (fpGlitchCount <= 0) {
+        fpGlitchCount = 0;
+        clearInterval(fpGlitchIv);
+        fpGlitchEl.style.display = 'none';
+      }
+    }, ms);
+  }
+
+  /* "自我"膨胀（阶梯式，花屏联动） */
+  function fpExpandSelf() {
+    var sp = fpLines.querySelector('.self-w');
+    if (!sp) return null;
+    var r = sp.getBoundingClientRect();
+    var o = document.createElement('div');
+    o.className = 'self-expand';
+    o.textContent = '自我';
+    o.style.left = r.left + 'px';
+    o.style.top = r.top + 'px';
+    o.style.fontSize = r.height + 'px';
+    o.style.transform = 'scale(1)';
+    flipEl.appendChild(o);
+    sp.style.visibility = 'hidden';
+    return { el: o, w: r.width };
+  }
+  async function fpRunSelfExpand(se, t) {
+    if (!se) return;
+    var fin = Math.ceil((window.innerWidth * 1.05) / se.w);
+    var steps = [
+      { s: 4,   x: -20, hold: 430 },
+      { s: 11,  x: 16,  hold: 430 },
+      { s: 26,  x: 0,   hold: 430 },
+      { s: fin, x: 0,   hold: 640 }
+    ];
+    for (var i = 0; i < steps.length; i++) {
+      if (!fpAlive(t)) return;
+      fpGlitch(200); /* 与下坠同款：每跳一级伴随一拍花屏 */
+      se.el.style.transform = 'translateX(' + steps[i].x + 'px) scale(' + steps[i].s + ')';
+      await fpSleep(steps[i].hold);
+    }
+  }
+
+  function fpCleanup() {
+    fpClearLines(); fpArtifacts.innerHTML = '';
+    fpBigword.classList.remove('show'); fpBigword.innerHTML = '';
+    fpGlitchCount = 0; clearInterval(fpGlitchIv); fpGlitchEl.style.display = 'none';
+    fpGlitchEl.innerHTML = '';
+    document.querySelectorAll('.self-expand').forEach(function (x) { x.remove(); });
+    fpSkipBtn.style.display = 'none';
+    flipEl.classList.remove('on');
+  }
+
+  /* 跳过：直接结束过场进入边栏 */
+  fpSkipBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    flipToken++;
+    fpCleanup();
+    if (flipDoneCb) { var cb = flipDoneCb; flipDoneCb = null; cb(); }
+  });
+
+  /* 主时间轴（与预览页一致） */
+  async function fpRun(t) {
+    fpSkipBtn.style.display = 'block';
+    /* 1. 打字机 */
+    await fpTypeLine('不过，昨晚你们到底发生了什么？', t);
+    if (!fpAlive(t)) return;
+    await fpSleep(2000);
+    if (!fpAlive(t)) return;
+    fpGlitch(500);
+    await fpSleep(500);
+    fpClearLines();
+    await fpSleep(150);
+
+    /* 2. 黑色液体两行共存（2s 后出现第二行） */
+    fpSetLine('<span class="blk">黑色</span>的液体从他的嘴角流了下来，起初我以为那是血。');
+    await fpSleep(2000);
+    if (!fpAlive(t)) return;
+    fpAddLine('但是那太暗了。而且紧接着他流下了<span class="blk">黑色</span>的泪水。');
+
+    /* 3. 两个"黑色"随花屏节奏阶梯下坠（先慢后快，共 3s） */
+    var blks = fpLines.querySelectorAll('.blk');
+    var drops = [3, 5, 8, 13, 21, 34];
+    var acc = 0;
+    for (var di = 0; di < drops.length; di++) {
+      if (!fpAlive(t)) return;
+      fpGlitch(200);
+      acc += drops[di];
+      (function (off, sway) {
+        blks.forEach(function (s) { s.style.transform = 'translate(' + sway + 'px,' + off + 'vh)'; });
+      })(acc, di % 2 ? 8 : -8);
+      await fpSleep(500);
+    }
+    if (!fpAlive(t)) return;
+    await fpSleep(300);
+    fpClearLines();
+    await fpSleep(400);
+
+    /* 4. 三行每秒一行 */
+    fpSetLine('沉闷的声音从身体内部传来，像是有东西从食道上涌，将要呕吐出来的前兆。');
+    await fpSleep(1000);
+    if (!fpAlive(t)) return;
+    fpAddLine('<span class="self-w">自我</span>在膨胀。');
+    await fpSleep(1000);
+    if (!fpAlive(t)) return;
+    fpAddLine('但是那不应该是我。');
+    await fpSleep(2000);
+    if (!fpAlive(t)) return;
+
+    /* 5. "自我"阶梯式摇晃放大（花屏联动） → 花屏 → 清空 */
+    var se = fpExpandSelf();
+    await fpRunSelfExpand(se, t);
+    if (!fpAlive(t)) return;
+    fpGlitch(500);
+    await fpSleep(500);
+    fpClearLines(); fpArtifacts.innerHTML = '';
+    document.querySelectorAll('.self-expand').forEach(function (x) { x.remove(); });
+    await fpSleep(300);
+
+    /* 6. 逐行替换段（每句字号递增） */
+    fpSetLineGrow('翻转现象有可能会发生在这里的每一个人身上。');
+    await fpSleep(1500);
+    if (!fpAlive(t)) return;
+
+    fpSetLineGrow(
+      '<span class="rg">已经不能称之为人类的物质破开</span>' +
+      '<span class="np">皮</span><span class="np">囊</span>' +
+      '<span class="rg">，在发觉自己成为排泄出的</span><span class="yw">异物</span>' +
+      '<span class="rg">时匆忙的逃回原来的身体，钻进外表皮的缝隙中。</span>'
+    );
+    await fpSleep(1500);
+    if (!fpAlive(t)) return;
+
+    /* 7. 皮囊裂开，随后整行字一起消失 */
+    var nps = fpLines.querySelectorAll('.np');
+    if (nps[0]) nps[0].style.transform = 'translateX(-46px) rotate(-8deg)';
+    if (nps[1]) nps[1].style.transform = 'translateX(46px) rotate(8deg)';
+    await fpSleep(1000);
+    if (!fpAlive(t)) return;
+    fpLines.querySelectorAll('.rg, .np, .yw').forEach(function (s) { s.style.opacity = '0'; });
+    await fpSleep(900);
+    if (!fpAlive(t)) return;
+    fpClearLines();
+    await fpSleep(400);
+
+    /* 8. 颠倒行，仅留"身体"（保持颠倒） */
+    fpSetLineGrow(
+      '<span class="rg">人类的</span><span class="body-w">身</span><span class="body-w">体</span>' +
+      '<span class="rg">发生了颠倒，从头到脚被撑起。</span>', 'inv'
+    );
+    await fpSleep(2000);
+    if (!fpAlive(t)) return;
+    fpLines.querySelectorAll('.rg, .body-w').forEach(function (s) { s.style.opacity = '0'; });
+    await fpSleep(900);
+    if (!fpAlive(t)) return;
+    fpClearLines();
+    await fpSleep(600);
+
+    /* 9. 染成 → 漆黑 */
+    fpSetLineGrow('皮肤物质内侧已经被染成');
+    await fpSleep(1000);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+    fpBigword.innerHTML = '<span class="big">漆黑</span>';
+    fpBigword.classList.add('show');
+    await fpSleep(500);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+    fpBigword.classList.remove('show');
+    fpSetLineGrow('被重新灌入异物后');
+    await fpSleep(800);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+
+    /* 10. 内/外侧旋转行 */
+    fpSetLineGrow('<span class="rot-cw"><i>内</i><i>侧</i></span><span>成为了</span><span class="rot-ccw"><i>外</i><i>侧</i></span>');
+    await fpSleep(800);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+    fpSetLineGrow('<span class="rot-ccw"><i>外</i><i>侧</i></span><span>成为了</span><span class="rot-cw"><i>内</i><i>侧</i></span>');
+    await fpSleep(800);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+    fpSetLineGrow('人类成为了异类');
+    await fpSleep(800);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+    fpSetLineGrow('这种现象我称之为');
+    await fpSleep(1000);
+    if (!fpAlive(t)) return;
+    fpGlitch(200);
+    await fpSleep(250);
+
+    /* 11. 翻转（翻字倒置）→ 2s 花屏 → 结束进入边栏 */
+    fpBigword.innerHTML = '<span class="big"><span class="fan">翻</span>转</span>';
+    fpBigword.classList.add('show');
+    await fpSleep(1600);
+    if (!fpAlive(t)) return;
+    fpGlitch(2000);
+    await fpSleep(2000);
+    if (!fpAlive(t)) return;
+    fpBigword.classList.remove('show');
+
+    fpCleanup();
+    if (flipDoneCb) { var cb = flipDoneCb; flipDoneCb = null; cb(); }
+  }
+
+  /* 花屏结束后调用：全屏播放翻转过场，结束/跳过后进入边栏 */
+  function startFlipTransition() {
+    var header = document.querySelector('header');
+    var layout = document.querySelector('.layout');
+    var footer = document.querySelector('footer');
+    header.style.display = 'none';
+    layout.style.display = 'none';
+    footer.style.display = 'none';
+    flipEl.classList.add('on');
+    flipDoneCb = function () {
+      showOnly(null);
+      document.querySelector('main').style.display = 'none';
+      sidebarApp.classList.add('on');
+      switchPage('ab');
+      document.getElementById('clearance-level').textContent = 'LEVEL 3 / AMBER';
+      /* 过场结束，恢复顶栏、布局容器与底栏 */
+      header.style.display = '';
+      layout.style.display = '';
+      footer.style.display = '';
+    };
+    fpResetGrow();
+    fpRun(++flipToken);
+  }
+  // 调试出口：控制台执行 __zirpFlip() 可直接触发过场（无需点完四字）
+  window.__zirpFlip = startFlipTransition;
+
   // ===== 边栏页面切换 =====
+  var sideContent = document.querySelector('.side-content');
+  function scrollContentTop() {
+    if (sideContent) sideContent.scrollTop = 0;
+  }
   function switchPage(name) {
+    scrollContentTop();
     document.querySelectorAll('.side-item').forEach(function (b) {
       b.classList.toggle('active', b.dataset.page === name);
     });
@@ -1564,6 +2080,7 @@
     diaryPage.textContent = '第 ' + (diaryIndex + 1) + ' / ' + DIARIES.length + ' 篇';
     diaryPrev.disabled = diaryIndex === 0;
     diaryNext.disabled = diaryIndex === DIARIES.length - 1;
+    scrollContentTop();
   }
   diaryPrev.addEventListener('click', function (e) {
     e.stopPropagation();
@@ -1612,6 +2129,7 @@
     diary2Page.textContent = '第 ' + (diary2Index + 1) + ' / ' + DIARIES2.length + ' 篇';
     diary2Prev.disabled = diary2Index === 0;
     diary2Next.disabled = diary2Index === DIARIES2.length - 1;
+    scrollContentTop();
   }
   renderDiary2();
   diary2Prev.addEventListener('click', function (e) {
