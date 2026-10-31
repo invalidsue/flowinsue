@@ -1,0 +1,1791 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZIRP Research Centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=EB+Garamond:ital,wght@1,500&family=Noto+Serif+SC:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --panel: #121212;
+    --panel-2: #171717;
+    --border: #2a2a2a;
+    --red: #c1121f;
+    --red-dim: #7a0c13;
+    --text: #d6d6d6;
+    --text-dim: #8a8a8a;
+    --blue: #1a4d8f;
+    /* 灰红色滚动条，10% 透明度，弱化存在感 */
+    --scroll: rgba(150,50,60,.1);
+    --red-hi: #e8404d;
+    --secret-size: 17px;
+    --mono: "Noto Sans SC", "Source Han Sans SC", "Source Han Sans CN", "思源黑体", "Microsoft YaHei", "PingFang SC", sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    color: var(--text);
+    font-family: var(--mono);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* 科技风暗红到黑渐变 + 网格纹理 */
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(193,18,31,.28), transparent 70%),
+      radial-gradient(ellipse 40% 40% at 15% 110%, rgba(122,12,19,.25), transparent 70%),
+      repeating-linear-gradient(0deg, rgba(193,18,31,.05) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(90deg, rgba(193,18,31,.05) 0 1px, transparent 1px 44px),
+      repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 2px, transparent 2px 4px),
+      linear-gradient(160deg, #2b060a 0%, #16070a 38%, #0a0a0a 68%, #050505 100%);
+    background-attachment: fixed;
+  }
+
+  /* ===== 页头 ===== */
+  header {
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgba(18,18,18,.75);
+    backdrop-filter: blur(4px);
+  }
+  .title-block h1 {
+    font-size: 20px;
+    letter-spacing: 4px;
+    color: #fff;
+  }
+  .title-block p {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 6px;
+  }
+  .clearance {
+    margin-left: auto;
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 8px 16px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-align: center;
+    line-height: 1.7;
+  }
+
+  /* ===== 主体布局 ===== */
+  .layout {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    position: relative;
+  }
+
+  main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 48px 80px;
+    background: transparent;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll) transparent;
+  }
+  main::-webkit-scrollbar { width: 8px; }
+  main::-webkit-scrollbar-track { background: rgba(0,0,0,.3); }
+  main::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 4px; }
+  main::-webkit-scrollbar-thumb:hover { background: rgba(150,50,60,.3); }
+  .overview-doc::-webkit-scrollbar, .lead-doc::-webkit-scrollbar { width: 8px; }
+  .overview-doc::-webkit-scrollbar-thumb, .lead-doc::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 4px; }
+  .overview-doc::-webkit-scrollbar-thumb:hover, .lead-doc::-webkit-scrollbar-thumb:hover { background: rgba(150,50,60,.3); }
+
+  section {
+    margin: 0 auto 40px;
+    max-width: 720px;
+  }
+  h3 {
+    color: var(--red);
+    font-size: 15px;
+    letter-spacing: 3px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed var(--red-dim);
+  }
+
+  /* ===== 居中文字舞台 ===== */
+  .center-stage {
+    position: absolute;
+    inset: 0;
+    display: none; /* 默认全部隐藏，由 JS 切换；即使 JS 失效也不会叠屏 */
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 48px;
+    pointer-events: none;
+  }
+  /* 初始只显示欢迎页 */
+  #welcome-screen { display: flex; }
+  .welcome-text {
+    color: #ffffff;
+    font-size: 30px;
+    letter-spacing: 4px;
+    font-weight: 500;
+    user-select: none;
+    text-align: center;
+  }
+  .err-text {
+    color: #ffffff;
+    /* 白色字体 = 蓝色字体 × 1.3 */
+    font-size: calc(var(--secret-size) * 1.3);
+    letter-spacing: 1px;
+    line-height: 1.9;
+    text-align: center;
+    max-width: 760px;
+    user-select: none;
+  }
+  .secret-line {
+    color: #2e6bd6;
+    font-family: "EB Garamond", "Noto Serif SC", Georgia, serif;
+    font-style: italic;
+    font-size: var(--secret-size);
+    letter-spacing: 1px;
+    line-height: 1.8;
+    text-align: center;
+    max-width: 760px;
+    user-select: none;
+  }
+  /* 打字内容为空时不占位 */
+  .secret-line:empty { display: none; }
+  /* 闪烁倒三角：表示继续 */
+  .next-hint {
+    color: var(--red);
+    font-size: 22px;
+    line-height: 1;
+    animation: blink 1.2s step-end infinite;
+    user-select: none;
+  }
+
+  /* ===== 项目概览页 ===== */
+  .overview-doc {
+    width: min(780px, 92%);
+    max-height: 100%;
+    overflow-y: auto;
+    text-align: left;
+    padding: 32px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll) transparent;
+    pointer-events: auto;
+  }
+  .ov-title {
+    color: #ffffff;
+    font-size: 28px;
+    letter-spacing: 3px;
+    font-weight: 700;
+    /* 与内容间隔约 0.8 行（正文行高 2 ≈ 30px） */
+    margin-bottom: 24px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  /* 标题下的红色装饰短线 */
+  .ov-title::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 64px;
+    height: 2px;
+    background: var(--red);
+  }
+  .ov-sub {
+    color: #ffffff;
+    font-size: 19px;
+    letter-spacing: 1px;
+    font-weight: 500;
+    /* 小标题与上一节内容间隔两行，与正文间隔约 0.8 行（正文行高 2 × 15px ≈ 30px，0.8 ≈ 24px） */
+    margin: 56px 0 24px;
+    padding-left: 12px;
+    border-left: 3px solid var(--red);
+  }
+  .overview-doc .ov-sub:first-of-type { margin-top: 0; }
+  .overview-doc p {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin-bottom: 12px;
+  }
+  /* 蓝色链接（点击此处等） */
+  .doc-link {
+    color: #2e6bd6;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .doc-link:hover { color: #5a8ce0; }
+  /* 加粗字符（原文加粗 -> 红色，后续按顺序点击触发跳转） */
+  .red-char {
+    color: var(--red);
+    font-weight: 700;
+  }
+
+  /* 档案页回退按钮：位于居中文档区外侧，紧贴文档左边缘，与第一行标题水平对齐（位置由 JS 依据文档实际位置计算） */
+  .back-btn {
+    position: absolute;
+    color: var(--red);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 8px;
+    z-index: 10;
+    pointer-events: auto; /* 父级 center-stage 关闭了点击穿透，按钮需恢复 */
+  }
+  .back-btn:hover { color: var(--red-hi); }
+
+  /* ===== 负责人介绍页 ===== */
+  .lead-doc {
+    width: min(780px, 92%);
+    max-height: 100%;
+    overflow-y: auto;
+    text-align: left;
+    padding: 32px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll) transparent;
+    pointer-events: auto;
+    position: relative; /* 作为回退按钮的定位基准 */
+  }
+  /* 人像 + 档案表格 */
+  .lead-profile {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    background: rgba(18,18,18,.8);
+    margin-bottom: 56px; /* 与后续文字间隔两行 */
+  }
+  .lead-portrait {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    background: #000;
+    display: block;
+  }
+  img.lead-portrait { height: 280px; object-fit: cover; }
+  .lead-fields {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .lead-row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--border);
+    flex: 1;
+  }
+  .lead-row:last-child { border-bottom: none; }
+  .lead-label {
+    /* 横排文字、居中，约占 1/4 宽度 */
+    width: 25%;
+    flex-shrink: 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 10px 8px;
+    border-right: 1px solid var(--border);
+    background: rgba(0,0,0,.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .lead-value {
+    /* 约占 3/4 宽度，文字居中 */
+    width: 75%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px 16px;
+    color: #ffffff;
+    font-size: 14px;
+    letter-spacing: 1px;
+    line-height: 1.8;
+  }
+  /* 表格与正文之间的分割过渡线 */
+  .lead-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--red-dim);
+    letter-spacing: 4px;
+    font-size: 11px;
+    margin: 0 0 56px; /* 两行间距 */
+    user-select: none;
+  }
+  .lead-divider::before, .lead-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--red-dim));
+  }
+  .lead-divider::after {
+    background: linear-gradient(90deg, var(--red-dim), transparent);
+  }
+  .lead-doc .ov-sub { margin: 56px 0 24px; }
+  /* 大标题与档案表格之间间隔两行（正文行高 2 × 15px = 30px × 2） */
+  .lead-doc .ov-title { margin-bottom: 60px; }
+  .lead-doc p {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin-bottom: 12px;
+  }
+  /* 密码框 */
+  .lock-box {
+    border: 1px solid var(--red);
+    background: rgba(0,0,0,.5);
+    padding: 24px 20px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .lock-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 8px 4px;
+  }
+  .lock-box input::placeholder { color: var(--text-dim); }
+  .lock-btn {
+    background: var(--red);
+    border: none;
+    color: #ffffff;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 9px 18px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .lock-btn:hover { background: var(--red-hi); }
+  .lock-hint { color: var(--text-dim); font-size: 12px; margin-top: 10px; letter-spacing: 1px; }
+  .lock-error { color: var(--red); font-size: 12px; margin-top: 10px; letter-spacing: 1px; display: none; }
+  /* 解锁后的聊天记录 */
+  .chat-records { display: none; }
+  .chat-records .chat-line {
+    color: #ffffff;
+    font-size: 14px;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin-bottom: 10px;
+  }
+  .chat-records .chat-note { color: var(--text-dim); font-size: 12px; }
+  /* 末尾红色提示（自行拼凑加粗）：与上方聊天记录间隔三行（聊天行高 28px × 3 = 84px） */
+  .lead-final {
+    color: var(--red);
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin-top: 84px;
+    text-align: center;
+  }
+  .lead-final strong { color: var(--red); font-weight: 700; }
+
+  /* ===== 内部入口：花屏特效 + 边栏架构 ===== */
+  /* 花屏遮罩 */
+  .glitch-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background: #050505;
+    display: none;
+    overflow: hidden;
+    pointer-events: auto;
+  }
+  .glitch-overlay.on { display: block; }
+  .glitch-bars {
+    position: absolute;
+    inset: -40px;
+    background:
+      repeating-linear-gradient(0deg,
+        rgba(193,18,31,.28) 0 3px, transparent 3px 9px,
+        rgba(46,107,214,.22) 9px 12px, transparent 12px 21px,
+        rgba(255,255,255,.10) 21px 22px, transparent 22px 34px);
+    animation: glitchShift .1s steps(3) 12;
+  }
+  @keyframes glitchShift {
+    0% { transform: translate(0,0) skewX(0deg); }
+    30% { transform: translate(-16px,6px) skewX(-3deg); }
+    60% { transform: translate(11px,-9px) skewX(2deg); }
+    100% { transform: translate(0,0) skewX(0deg); }
+  }
+  .glitch-overlay::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(255,255,255,.06) 46px 48px);
+    animation: glitchShift .13s steps(2) 9 reverse;
+  }
+  /* 花屏杂色块：JS 生成，随机位置/颜色/尺寸闪烁 */
+  .glitch-block {
+    position: absolute;
+    animation: glitchBlockBlink .08s steps(2) infinite;
+  }
+  @keyframes glitchBlockBlink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
+
+  /* 顺序点击命中的红字高亮 */
+  .red-char { transition: all .15s; cursor: pointer; }
+  .red-char.hit { color: var(--red-hi); text-shadow: 0 0 10px var(--red); }
+
+  /* 边栏架构：进入时隐藏 main，边栏独占整行并贴左边 */
+  .sidebar-app { display: none; flex: 1; min-height: 0; }
+  .sidebar-app.on { display: flex; }
+  .side-nav {
+    width: 210px;
+    flex-shrink: 0;
+    background: rgba(45,45,45,.5);
+    backdrop-filter: blur(6px);
+    border-right: 1px solid var(--border);
+    padding: 28px 0;
+    overflow-y: auto;
+  }
+  .side-title {
+    padding: 0 22px 16px;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 10px;
+    user-select: none;
+  }
+  .side-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 13px 22px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .side-item:hover { color: #fff; background: rgba(255,255,255,.04); }
+  .side-item.active { color: #fff; border-left-color: var(--red); background: rgba(193,18,31,.12); }
+  .side-item.hidden { display: none; }
+
+  .side-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 44px 48px 80px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll) transparent;
+  }
+  .side-content::-webkit-scrollbar { width: 8px; }
+  .side-content::-webkit-scrollbar-thumb { background: var(--scroll); border-radius: 4px; }
+  .side-content::-webkit-scrollbar-thumb:hover { background: rgba(150,50,60,.3); }
+  /* 页面内容在居中容器内 */
+  .sb-page { display: none; width: min(860px, 100%); margin: 0 auto; position: relative; }
+  .sb-page.on { display: block; }
+  .sb-page p {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 2;
+    margin-bottom: 12px;
+  }
+  .sb-note-sub { padding-left: 22px; color: var(--text-dim) !important; }
+  /* 异想体档案页的小字与正文左对齐（不缩进） */
+  #sb-ab .sb-note-sub { padding-left: 0; }
+
+  /* 留言板（已暂停使用）：禁用输入区 */
+  .msg-disabled {
+    display: flex;
+    gap: 10px;
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    opacity: .35;
+    cursor: not-allowed;
+  }
+  .msg-input {
+    flex: 1;
+    background: rgba(0,0,0,.4);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 9px 12px;
+    outline: none;
+    cursor: not-allowed;
+  }
+  .msg-input::placeholder { color: var(--text-dim); }
+  .msg-send {
+    background: rgba(193,18,31,.25);
+    border: 1px solid var(--red-dim);
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 9px 20px;
+    cursor: not-allowed;
+  }
+
+  /* ===== 异想体档案：左文右图 ===== */
+  .ab-note {
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+  }
+  /* 两个负责人页的聊天记录小标题间距强制一致（不受 :first-of-type 归零影响） */
+  #lead-screen .ov-sub, #sb-lead .ov-sub { margin-top: 56px; }
+  /* 注意事项：标题与正文隔三行；各大点之间隔一行 */
+  #sb-notes .ov-title { margin-bottom: 62px; }
+  .note-item { margin-top: 30px; }
+  #sb-notes p.note-item:first-of-type { margin-top: 0; }
+  .ab-wrap { display: flex; gap: 32px; align-items: flex-start; }
+  .ab-main { flex: 1; min-width: 0; }
+  .ab-quote {
+    border-left: 3px solid var(--red);
+    padding: 12px 16px;
+    color: #fff;
+    background: rgba(193,18,31,.06);
+    margin-bottom: 56px;
+    font-size: 15px;
+    letter-spacing: 2px;
+    line-height: 2;
+  }
+  .ab-panel {
+    width: 280px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+    background: rgba(18,18,18,.85);
+  }
+  .ab-img {
+    width: 100%;
+    height: 200px;
+    background: #000;
+    border-bottom: 1px solid var(--border);
+  }
+  .ab-table .r { display: flex; border-bottom: 1px solid var(--border); }
+  .ab-table .r:last-child { border-bottom: none; }
+  .ab-table .k {
+    width: 38%;
+    padding: 10px 12px;
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 1px;
+    border-right: 1px solid var(--border);
+  }
+  .ab-table .v { flex: 1; padding: 10px 12px; color: #fff; font-size: 13px; letter-spacing: 1px; }
+  /* 关键词解锁面板 */
+  .kw-lock {
+    border: 1px dashed var(--red-dim);
+    background: rgba(0,0,0,.45);
+    padding: 24px 20px;
+    margin: 56px 0;
+    text-align: center;
+  }
+  .kw-lock .kw-q { color: #fff; font-size: 16px; letter-spacing: 3px; margin-bottom: 16px; }
+  .kw-lock .kw-q .kw-blank { color: var(--red); }
+  .kw-lock input {
+    background: rgba(0,0,0,.5);
+    border: 1px solid var(--red);
+    outline: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 2px;
+    padding: 9px 12px;
+    width: 200px;
+    text-align: center;
+  }
+  .kw-lock button {
+    background: var(--red);
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 10px 18px;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .kw-lock button:hover { background: var(--red-hi); }
+  .kw-lock .kw-err { color: var(--red); font-size: 12px; margin-top: 12px; display: none; letter-spacing: 1px; }
+  .locked-part { display: none; }
+
+  /* ===== Daily Record ===== */
+  .dr-format {
+    background: rgba(128,128,128,.14);
+    border: 1px solid var(--border);
+    padding: 18px 22px;
+    margin-bottom: 56px;
+  }
+  .dr-format .dr-format-title { color: #fff; font-size: 14px; letter-spacing: 2px; margin-bottom: 8px; font-weight: 500; }
+  .dr-format p { color: var(--text-dim); font-size: 13px; line-height: 2; margin-bottom: 2px; }
+  /* 工号解锁屏：词语平铺整个页面背景 */
+  #sb-daily { min-height: 480px; }
+  .dr-words-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .dr-unlock {
+    position: relative;
+    z-index: 1;
+    min-height: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .dr-word {
+    position: absolute;
+    color: rgba(255,255,255,.13);
+    font-size: 13px;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    user-select: none;
+    pointer-events: none;
+  }
+  .dr-unlock-center {
+    position: relative;
+    z-index: 2;
+    min-height: 440px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+  }
+  .dr-unlock-center .dr-q { color: #fff; font-size: 16px; letter-spacing: 3px; }
+  .dr-unlock-center input {
+    background: rgba(0,0,0,.55);
+    border: 1px solid var(--red);
+    outline: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 3px;
+    padding: 10px 14px;
+    width: 220px;
+    text-align: center;
+  }
+  .dr-unlock-center button {
+    background: var(--red);
+    border: none;
+    color: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    cursor: pointer;
+  }
+  .dr-unlock-center button:hover { background: var(--red-hi); }
+  .dr-unlock-center .dr-err { color: var(--red); font-size: 12px; letter-spacing: 1px; display: none; }
+  .dr-viewer { display: none; }
+  .diary-body strong { color: #fff; font-weight: 700; }
+  .diary-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 56px;
+  }
+  .diary-nav button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 2px;
+    padding: 10px 22px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .diary-nav button:hover:not(:disabled) { border-color: var(--red-dim); color: #fff; background: rgba(193,18,31,.08); }
+  .diary-nav button:disabled { opacity: .3; cursor: default; }
+  .diary-nav .diary-page { color: var(--text-dim); font-size: 12px; letter-spacing: 2px; }
+
+  /* ===== 留言板 ===== */
+  .msg-board { border: 1px solid var(--border); margin-top: 56px; }
+  .msg-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: #fff;
+    font-size: 15px;
+    letter-spacing: 2px;
+    background: rgba(193,18,31,.08);
+    font-weight: 500;
+  }
+  .msg-item { padding: 16px 18px; border-bottom: 1px solid var(--border); }
+  .msg-item:last-child { border-bottom: none; }
+  .msg-body { color: #fff; font-size: 14px; line-height: 1.9; }
+  /* 评论：蓝色斜体（同打字机蓝字风格） */
+  .msg-reply {
+    color: #2e6bd6;
+    font-family: "EB Garamond", "Noto Serif SC", Georgia, serif;
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.9;
+    margin-top: 10px;
+    padding-left: 14px;
+    border-left: 2px solid rgba(46,107,214,.4);
+  }
+
+  /* 待正式版解锁的占位板块：虚线框 */
+  .pending-box {
+    border: 1px dashed var(--red-dim);
+    background: rgba(193,18,31,.04);
+    color: var(--text-dim);
+    font-size: 14px;
+    letter-spacing: 3px;
+    text-align: center;
+    padding: 28px 16px;
+    margin-bottom: 12px;
+    user-select: none;
+  }
+
+  /* ===== 事故通告：新闻排版 ===== */
+  .news-article {
+    border: 1px solid var(--border);
+    background: rgba(0,0,0,.35);
+    padding: 44px 52px 36px;
+  }
+  .news-title {
+    color: var(--red);
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .news-meta {
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 2px;
+    text-align: center;
+    margin-top: 18px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+  .news-body p {
+    color: #ffffff;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 2.1;
+    text-align: justify;
+    text-indent: 2em;
+    margin: 20px 0;
+  }
+  .news-foot {
+    margin-top: 44px;
+    text-align: right;
+    color: var(--text-dim);
+    font-size: 13px;
+    letter-spacing: 2px;
+  }
+
+  /* ===== 考核题 ===== */
+  .quiz-screen { display: none; }
+  .quiz-q {
+    border: 1px solid var(--border);
+    background: rgba(18,18,18,.8);
+    padding: 18px 20px;
+    margin-bottom: 20px;
+  }
+  .quiz-q h4 {
+    color: #fff;
+    font-size: 14px;
+    letter-spacing: 1px;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .quiz-q h4 .qn { color: var(--red); margin-right: 8px; }
+  .quiz-opt {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all .15s;
+    letter-spacing: 1px;
+  }
+  .quiz-opt:hover {
+    border-color: var(--red-dim);
+    background: rgba(193,18,31,.08);
+  }
+  .quiz-opt.selected {
+    border-color: var(--red);
+    background: rgba(193,18,31,.22);
+    color: #fff;
+  }
+  /* 划去选项（阶段4展示） */
+  .quiz-opt.crossed {
+    border-color: var(--border);
+    color: var(--text-dim);
+    text-decoration: line-through;
+    cursor: default;
+  }
+  .quiz-opt.crossed:hover { background: transparent; border-color: var(--border); }
+
+  /* 提交按钮 */
+  .submit-row {
+    text-align: center;
+    margin-top: 12px;
+  }
+  .submit-btn {
+    font-family: inherit;
+    font-size: 14px;
+    letter-spacing: 4px;
+    color: #fff;
+    background: var(--red);
+    border: 1px solid var(--red);
+    padding: 12px 48px;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .submit-btn:hover { background: var(--red-dim); border-color: var(--red-dim); }
+
+  /* 提交结果提示 */
+  .result-tip {
+    text-align: center;
+    font-size: 15px;
+    letter-spacing: 1px;
+    line-height: 1.9;
+    margin: 20px auto 0;
+    max-width: 640px;
+    min-height: 24px;
+  }
+  .result-tip.error { color: var(--red); }
+  .result-tip.pass { color: #3a7a3a; }
+
+  /* ===== 阶段3：错误提示 + 深蓝文字（复用 center-stage） ===== */
+  .error-screen { display: none; }
+
+  /* ===== 底部 ===== */
+  footer {
+    height: 44px;
+    border-top: 1px solid var(--border);
+    background: rgba(18,18,18,.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    user-select: none;
+  }
+  .blink {
+    color: var(--red);
+    animation: blink 1.4s step-end infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  @media (max-width: 720px) {
+    main { padding: 24px 20px 60px; }
+    .lead-profile { flex-direction: column; }
+    .lead-portrait { width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-block">
+    <h1>ZIRP Research Centre</h1>
+    <p>Zeus Initially Relive Project</p>
+  </div>
+  <div class="clearance">权限等级<br><span id="clearance-level">LEVEL 4 / TOPAZ</span></div>
+</header>
+
+<div class="layout">
+  <main id="main-area">
+
+    <!-- 阶段1：欢迎页 -->
+    <div class="center-stage" id="welcome-screen">
+      <div class="welcome-text">欢迎访问数据中心</div>
+      <div class="next-hint">▼</div>
+    </div>
+
+    <!-- 阶段2 / 阶段4：答题界面 -->
+    <section id="quiz" class="quiz-screen">
+      <h3>如您有意向与我们合作，请点击对应的选项获取您想要的信息。</h3>
+
+      <div class="quiz-q" data-answer="b">
+        <h4><span class="qn">Q1.</span>我们的研究是基于旧█公司部分资料进行的。</h4>
+        <button class="quiz-opt" data-k="a">A. W</button>
+        <button class="quiz-opt" data-k="b">B. L</button>
+        <button class="quiz-opt" data-k="c">C. U</button>
+        <button class="quiz-opt" data-k="d">D. T</button>
+      </div>
+
+      <div class="quiz-q" data-answer="c">
+        <h4><span class="qn">Q2.</span>我们的研究所位于</h4>
+        <button class="quiz-opt" data-k="a">A. 您所知道的某个都市巢中</button>
+        <button class="quiz-opt" data-k="b">B. 您所知道的某个都市后巷</button>
+        <button class="quiz-opt" data-k="c">C. 您所知道的某地郊区</button>
+        <button class="quiz-opt" data-k="d">D. 您所知道的某个图书馆</button>
+      </div>
+
+      <div class="quiz-q" data-answer="a">
+        <h4><span class="qn">Q3.</span>我们更倾向接受█的合作方式</h4>
+        <button class="quiz-opt" data-k="a">A. 与旧世界之翼相关的人力或信息分享</button>
+        <button class="quiz-opt" data-k="b">B. 任何形式的资金援助</button>
+        <button class="quiz-opt" data-k="c">C. 交换安保部队庇护</button>
+        <button class="quiz-opt" data-k="d">D. 提供低标准实验的对象</button>
+      </div>
+
+      <div class="submit-row">
+        <button class="submit-btn" id="submit-btn">提 交</button>
+      </div>
+      <div class="result-tip" id="result-tip"></div>
+    </section>
+
+    <!-- 阶段3：错误提示 + 深蓝文字 -->
+    <div class="center-stage" id="error-screen">
+      <div class="err-text">经过评估，您暂时不具备和研究所合作的条件。如您依然抱有强烈的合作意向，请通过其他渠道收集我们相关的信息后再提交问卷。</div>
+      <div class="secret-line"></div>
+      <div class="next-hint">▼</div>
+    </div>
+
+    <!-- 阶段6：项目概览（答对后 5 秒自动进入） -->
+    <div class="center-stage" id="overview-screen">
+      <div class="overview-doc">
+        <h2 class="ov-title">项目概览</h2>
+
+        <h3 class="ov-sub">项目介绍</h3>
+        <p>本项目全名为“Zeus Initially Relive Project”，简称ZIRP，本项目立项是为了研究都市中存在的特殊实体，探寻其存在原因，活动机制，并发掘其可能存在的实用价值，将所有人从各自的当下困境<span class="red-char" data-idx="1">内</span>解放出来，从而达到项目最初的目标。</p>
+
+        <h3 class="ov-sub">项目对象</h3>
+        <p>目前项目有一例实体正在进行研究。实体目前在研究所被收容中。</p>
+        <p>该实体发现于T巢内，在出现后被项目相关人员发现在某个偏僻地点，目前尚不清楚其具体能力，只能确定其对一般个体具有有限的攻击欲望，因此在运输过程中采取的是全程隔离的形式。</p>
+        <p>如需获得该实体的详细信息，请在获得研究权限后前往网站内<span class="red-char" data-idx="2">部</span>入口查看。</p>
+
+        <h3 class="ov-sub">研究资源</h3>
+        <p>目前本项目配有约■■名相关人员，其中■■名为研究人员，均具有不同的都市奇点技术，异常现象或实体的研究经验。</p>
+        <p>本项目的负责人为具有异常现象接触和研究经验的人员，因特殊原因从巢内重要职务辞职，转而深入研究都市中与人类相关的特殊实体。</p>
+        <p>如您需要了解负责人的详细信息，请<span class="doc-link" id="to-lead">点击此处</span>查看其详细资料。由于保密需要，您需要至少对其有基本了解才能获取其部分资料的阅读权限。</p>
+        <p>本项目配备了专门的研究设施，建造了独立的研究所。研究所占地约4000平方米，研究设施，基础设施建筑齐全，购买了部分奇点技术的使用权限及设备。</p>
+        <p>不管您想以个人或组织加<span class="red-char" data-idx="3">入</span>我们的项目，都可以发送请求到■■■■，我们收到后会及时回复您的消息。</p>
+
+        <h3 class="ov-sub">目前进展</h3>
+        <p>目前，该实体的研究尚在稳步推进中。据最近一次的反馈结果，项目组已经对该实体的行为规律有了初步的结论，但还需进一步的验证。</p>
+        <p>如果您需要更为详细的资料，可以在获得内部或合作方权限后在内部入<span class="red-char" data-idx="4">口</span>查看。</p>
+      </div>
+    </div>
+
+    <!-- 阶段7：研究所负责人介绍 -->
+    <div class="center-stage" id="lead-screen">
+      <div class="back-btn" id="lead-back">◀</div>
+      <div class="lead-doc">
+        <h2 class="ov-title">研究所负责人介绍</h2>
+
+        <!-- 人像 + 档案表格 -->
+        <div class="lead-profile">
+          <canvas class="lead-portrait" id="lead-portrait" width="220" height="280"></canvas>
+          <div class="lead-fields">
+            <div class="lead-row">
+              <div class="lead-label">负责人</div>
+              <div class="lead-value">M</div>
+            </div>
+            <div class="lead-row">
+              <div class="lead-label">出身</div>
+              <div class="lead-value">N巢</div>
+            </div>
+            <div class="lead-row">
+              <div class="lead-label">年龄</div>
+              <div class="lead-value">30+-</div>
+            </div>
+            <div class="lead-row">
+              <div class="lead-label">学历背景</div>
+              <div class="lead-value">高等学历以上（保密）</div>
+            </div>
+            <div class="lead-row">
+              <div class="lead-label">职业背景</div>
+              <div class="lead-value">N公司■■■■■管理人员</div>
+            </div>
+            <div class="lead-row">
+              <div class="lead-label">接触年龄</div>
+              <div class="lead-value">■年</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分割过渡线 -->
+        <div class="lead-divider">— 以下内容为补充资料 —</div>
+
+        <p>前职业为N公司重要机构管理人员，目前在本项目中担任负责人。</p>
+        <p>据出资方的考察，M对工作态度严谨，逻辑严密，且具有数年的管理经验，这是选择其成为项目负责人的主要原因。</p>
+        <p>对于项目研究背景，M在此后离开此前的工作岗位，对某个方向的异常现象进行了独立研究，在加入项目前发表了3篇相关的论述，其中不乏较为新颖的观点，引起了相关方向组织的关注。</p>
+        <p>与此同时，M为N巢某事件的亲身经历者，通过其自述，我们认为他具备处理类似紧急情况的经验，在本次项目中或许能有较好的发挥。</p>
+
+        <h3 class="ov-sub">一份聊天记录</h3>
+        <div id="chat-lock">
+          <div class="lock-box">
+            <input type="password" id="lock-input" placeholder="请输入访问密码" autocomplete="off">
+            <button class="lock-btn" id="lock-btn">解 锁</button>
+          </div>
+          <div class="lock-hint">提示：负责人全名</div>
+          <div class="lock-error" id="lock-error">密码错误，访问尝试已被记录。</div>
+        </div>
+        <div class="chat-records" id="chat-records">
+          <p class="chat-note">（该文本为语音转录文字生成）</p>
+          <p class="chat-line">现在对我过去的事进行原因论述……是吗？</p>
+          <p class="chat-line">的确，在离开N公司以后，我进行了一些调查，但这并不代表我有胜任现在这份工作的能力，这是我需要强调的。</p>
+          <p class="chat-line">实际上，我并不是单纯的因为兴趣，又或是迫切的想要知晓背后的原理而去进行调查。如果一定要说出行为背后的缘由，那也只是因为我感到了恐惧。</p>
+          <p class="chat-line">因为恐惧，我不得不想办法让我能认知到那背后的结构，才会让我不那么恐惧。</p>
+          <p class="chat-line">我并不具备一般意义上优秀研究人员的素质，希望你们能慎重考量。但如果你们最终还是这样决定了，我也不会拒绝这个职位。</p>
+        </div>
+
+        <p class="lead-final">***更多信息请进入内部入口阅读，请<strong>自行拼凑</strong>内部入口***</p>
+      </div>
+    </div>
+
+  </main>
+
+<!-- 花屏遮罩 -->
+<div class="glitch-overlay" id="glitch-overlay"><div class="glitch-bars"></div></div>
+
+<!-- ===== 内部入口：边栏架构 ===== -->
+<div class="sidebar-app" id="sidebar-app">
+  <nav class="side-nav">
+    <div class="side-title">内部档案导航</div>
+    <button class="side-item active" data-page="ab">异想体档案</button>
+    <button class="side-item" data-page="notes">研究所注意事项</button>
+    <button class="side-item" data-page="daily">D▓i1y R▓c0rd</button>
+    <button class="side-item" data-page="lead">负责人档案</button>
+    <button class="side-item hidden" data-page="accident">轻微事故通告</button>
+    <button class="side-item hidden" data-page="daily2">Daily Record2</button>
+  </nav>
+  <div class="side-content">
+
+    <!-- 异想体档案 -->
+    <section class="sb-page on" id="sb-ab">
+      <h2 class="ov-title">T-02-07异想体档案</h2>
+      <p class="ab-note">注：该异想体编号参考了旧L公司的命名格式，但格式规律仅为推测。</p>
+      <div class="ab-wrap">
+        <div class="ab-main">
+          <div class="ab-quote" id="ab-quote">“不要■■。■■会让它■■■■■■■■■■。”</div>
+          <h3 class="ov-sub">基础信息</h3>
+          <p>它是一只没有固定形态的实体，平时通常以无头骑兵的形态出现，但也有可能会发生诸多意想不到的变化。不过，它的所有形态都仅限于外形上的模仿，并不会涉及到它的本质，以下外形的特点可以帮助识别它，无论它处于哪种拟态下——它的边缘是流动的，类似逸散的烟气或是正升腾的火焰；内部的颜色看起来是黑色，但能够折射光，因此从某些角度看能看到类似油状物在阳光下的色散现象。</p>
+          <p class="sb-note-sub">-无头骑兵形态：高度2.4m，从远处看会认为其是一个没有头的骑兵骑在马上的阴影，但走近后就会发现那只是一种视觉上的错觉。</p>
+
+          <div class="kw-lock" id="ab-kw-lock">
+            <div class="kw-q">以下内容需验证研究关键词：不要<span class="kw-blank">【 】【 】</span>？</div>
+            <div>
+              <input type="text" id="ab-kw-input" placeholder="请输入关键词" autocomplete="off">
+              <button id="ab-kw-btn">验 证</button>
+            </div>
+            <div class="kw-err" id="ab-kw-err">关键词错误，验证尝试已被记录。</div>
+          </div>
+
+          <div class="locked-part" id="ab-locked">
+            <h3 class="ov-sub">评价</h3>
+            <div class="pending-box">待正式版线索解锁</div>
+            <h3 class="ov-sub">特殊能力</h3>
+            <p>同化</p>
+            <p>被同化的人起初会下意识的忽视身上出现的和人类不同的地方，直到有人提醒他们，或是因为某个契机发现自己和他人不同。</p>
+            <p>一旦意识到这点，个体会变得恐慌，并尝试剥离身上“不属于自己的部分”，因为他们并不想认同自己已经趋向于非人的形态。随着恐慌行为的加重，个体内部被同化的程度也会逐渐加重，直到失去原本的意识，成为没有基本活动能力的存在。</p>
+            <h3 class="ov-sub">E.G.O饰品</h3>
+            <div class="pending-box">待正式版线索解锁</div>
+            <h3 class="ov-sub">衍生物</h3>
+            <p>残骸</p>
+            <p>从它的内里或是被同化的产物内里出现的黑色物质，通常为液态。用生物质触碰它会导致被污染，用无机质则是安全的，请牢记这一点。</p>
+            <p>如果不小心触碰到了它的残骸，请保持平常心，无视它，不要尝试剥离或截除接触的部分。体表的污染和内里的污染并非完全对应相关，越是抗拒，越容易加深内心的污染。</p>
+            <h3 class="ov-sub">相关记录</h3>
+            <p>被观察者日记【请等待正式版更新】</p>
+          </div>
+        </div>
+        <div class="ab-panel">
+          <div class="ab-img"></div>
+          <div class="ab-table">
+            <div class="r"><div class="k">编号</div><div class="v">T-02-07</div></div>
+            <div class="r"><div class="k">名称</div><div class="v">■■■■■</div></div>
+            <div class="r"><div class="k">危险等级</div><div class="v">待评估</div></div>
+            <div class="r"><div class="k">状态</div><div class="v">收容中</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 研究所注意事项 -->
+    <section class="sb-page" id="sb-notes">
+      <h2 class="ov-title">研究所的注意事项</h2>
+      <p class="note-item">1.研究所位于地下，几乎与外界隔离，如有往返地面的需要，请在进出实验室前更换专门的外出衣物。</p>
+      <p class="note-item">2.研究所分两个主要片区，其中研究对象所在的片区为高风险片区，需要轮班巡逻以及监控，另一个片区为低风险片区，由于研究所几乎与外界隔离，这个片区不需要过多的安保措施。</p>
+      <p class="sb-note-sub">-2.1高风险片区的夜间巡逻分为三轮班，每轮4小时以避免长时间工作带来的负担。两天内同一人只能排一轮夜班。</p>
+      <p class="sb-note-sub">-2.2住宿区域位于低风险片区，研究所的决策将优先保证该区域的正常运转。（可能存在特殊情况）</p>
+      <p class="note-item">3.研究所的成员不规定工时指标，奖金等只根据负责人的评估进行发放，请自行安排好生活和研究节奏。</p>
+      <p class="sb-note-sub">-3.1与研究所负责人适当拉近距离可能有效果，但我更看重大家个人对项目做出的实际贡献。</p>
+      <p class="note-item">4.为了更好的把握所有人的心理健康，研究所的所有成员每天都需要按照格式在设备上提交日记。</p>
+      <p class="sb-note-sub">-4.1出于隐私考量，日记的阅读权限只有自己和研究所负责人，且负责人不会随意阅读日记。</p>
+      <p class="sb-note-sub">-4.2日记没有字数要求，如果工作较为繁忙或心理压力较大，可以简单的以几个词汇来回答问题，但不能不提交。</p>
+      <p class="sb-note-sub">-4.3如果没有按时提交日记，将视为旷工。</p>
+      <p class="note-item">5.在签订合同的同时签署的保密协议已经投送到了所有设备上，对于现有的工作内容请对外保持沉默，除非研究所有外派人员或新人前来。</p>
+      <p class="sb-note-sub">-5.1.外派人员或新人一定是由负责人介绍的，如果没有负责人的引见，一律无视来访人员的要求。</p>
+      <p class="note-item">6.研究所具有足够支撑现有人员两年的物资储备，同时也配备有空间传输设备。</p>
+      <p class="sb-note-sub">-6.1空间传输设备仅在获取了负责人以及资方许可后才能开启，可以从另一侧的空间获取更多物资或暂时避险。</p>
+      <p class="note-item">7.如对注意事项存在任何疑问和建议，欢迎通过设备联系撰写者M024457，或通过内网的留言板匿名留言，所有留言及回复将会在负责人档案下（临时附加的模块，没有单独开设页面）进行公示。</p>
+    </section>
+
+    <!-- Daily Record -->
+    <section class="sb-page" id="sb-daily">
+      <h2 class="ov-title">Daily Record</h2>
+      <div class="dr-words-layer" id="dr-words-layer"></div>
+      <div class="dr-format" id="dr-format" style="display:none">
+        <div class="dr-format-title">格式说明：</div>
+        <p>记忆检测——复述今天发生过的任意一件事</p>
+        <p>认知检测1——描述记录时桌上的任意一件物品，以及一般常识下它的名称</p>
+        <p>认知检测2——我是？</p>
+        <p>时间观念同步——请拟写或从任意地方拷贝任意内容的一段话，明天将出现在所有研究所成员的设备桌面。</p>
+      </div>
+
+      <div class="dr-unlock" id="dr-unlock">
+        <div class="dr-unlock-center">
+          <div class="dr-q">该记录需要验证工号</div>
+          <input type="text" id="dr-input" placeholder="请输入工号" autocomplete="off">
+          <button id="dr-btn">验 证</button>
+          <div class="dr-err" id="dr-err">工号错误，访问尝试已被记录。</div>
+        </div>
+      </div>
+
+      <div class="dr-viewer" id="dr-viewer">
+        <div class="diary-body" id="diary-body"></div>
+        <div class="diary-nav">
+          <button id="diary-prev">上一篇</button>
+          <span class="diary-page" id="diary-page">第 1 / 4 篇</span>
+          <button id="diary-next">下一篇</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 负责人介绍（内部入口版：无末尾红字，新增留言板） -->
+    <section class="sb-page" id="sb-lead">
+      <h2 class="ov-title">研究所负责人档案</h2>
+      <div class="lead-profile">
+        <img class="lead-portrait" src="zhengjianzhao.png" alt="负责人">
+        <div class="lead-fields">
+          <div class="lead-row"><div class="lead-label">负责人</div><div class="lead-value">M</div></div>
+          <div class="lead-row"><div class="lead-label">出身</div><div class="lead-value">N巢</div></div>
+          <div class="lead-row"><div class="lead-label">年龄</div><div class="lead-value">30+-</div></div>
+          <div class="lead-row"><div class="lead-label">学历背景</div><div class="lead-value">高等学历以上（保密）</div></div>
+          <div class="lead-row"><div class="lead-label">前职业</div><div class="lead-value">N公司重要机构管理人员</div></div>
+          <div class="lead-row"><div class="lead-label">现职</div><div class="lead-value">本项目负责人</div></div>
+        </div>
+      </div>
+      <div class="lead-divider">— 以下内容为补充资料 —</div>
+      <p>前职业为N公司重要机构管理人员，目前在本项目中担任负责人。</p>
+      <p>据出资方的考察，M对工作态度严谨，逻辑严密，且具有数年的管理经验，这是选择其成为项目负责人的主要原因。</p>
+      <p>对于项目研究背景，M在此后离开此前的工作岗位，对某个方向的异常现象进行了独立研究，在加入项目前发表了3篇相关的论述，其中不乏较为新颖的观点，引起了相关方向组织的关注。</p>
+      <p>与此同时，M为N巢某事件的亲身经历者，通过其自述，我们认为他具备处理类似紧急情况的经验，在本次项目中或许能有较好的发挥。</p>
+      <h3 class="ov-sub">一份聊天记录</h3>
+      <div class="sb-chat-lock">
+        <div class="lock-box">
+          <input type="password" class="sb-lock-input" placeholder="请输入访问密码" autocomplete="off">
+          <button class="lock-btn sb-lock-btn">解 锁</button>
+        </div>
+        <div class="lock-hint">提示：负责人全名</div>
+        <div class="lock-error sb-lock-error">密码错误，访问尝试已被记录。</div>
+      </div>
+      <div class="chat-records sb-chat-records">
+        <p class="chat-note">（该文本为语音转录文字生成）</p>
+        <p class="chat-line">现在对我过去的事进行原因论述……是吗？</p>
+        <p class="chat-line">的确，在离开N公司以后，我进行了一些调查，但这并不代表我有胜任现在这份工作的能力，这是我需要强调的。</p>
+        <p class="chat-line">实际上，我并不是单纯的因为兴趣，又或是迫切的想要知晓背后的原理而去进行调查。如果一定要说出行为背后的缘由，那也只是因为我感到了恐惧。</p>
+        <p class="chat-line">因为恐惧，我不得不想办法让我能认知到那背后的结构，才会让我不那么恐惧。</p>
+        <p class="chat-line">我并不具备一般意义上优秀研究人员的素质，希望你们能慎重考量。但如果你们最终还是这样决定了，我也不会拒绝这个职位。</p>
+      </div>
+
+      <div class="msg-board">
+        <div class="msg-head">开放式留言板（已暂停使用）</div>
+        <div class="msg-item">
+          <div class="msg-body">看起来很严肃，确实很有领导的样子，不过挺好说话的。</div>
+          <div class="msg-reply">评论：……还有什么需要改善的吗？</div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-body">真的不会偷看我的日记吗？</div>
+          <div class="msg-reply">评论：虽然我有权限，但没有特殊情况不会调取记录。</div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-body">一点头绪都没有怎么干活？</div>
+          <div class="msg-reply">评论：现在我和你的处境是相同的，基于目前的信息进行总结和拓展，所能做的仅此而已。</div>
+        </div>
+        <div class="msg-item">
+          <div class="msg-body">调薪，人太少了，好累</div>
+          <div class="msg-reply">评论：关于酬劳，在注意事项有一些相关的叙述。如果认为目前的工作量与收入不够匹配，等到项目达到一定进展后我会收集数据向委托方提交提高预算的申请。至于人员，委托方一直在招募中。</div>
+        </div>
+        <div class="msg-disabled">
+          <input class="msg-input" type="text" placeholder="留言板已暂停使用" disabled>
+          <button class="msg-send" type="button" disabled>发送</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 轻微研究事故（事故通告：新闻排版） -->
+    <section class="sb-page" id="sb-accident">
+      <article class="news-article">
+        <h2 class="news-title">研究所轻微事故通告</h2>
+        <div class="news-meta">Source: Internal Web · Classification：Accident</div>
+        <div class="news-body">
+          <p>近期，在收容室发生了研究材料对研究人员造成伤害的事故。目前受伤人员体征正常，没有生命危险，被安排在隔离室进行观察。</p>
+          <p>据录像显示，当事人进入收容室后，先是注视了研究材料1.3秒，随后移开了视线。此时研究材料表现出较为明显的动作倾向，因此当事人后退了半步，并说道：“不要靠近我。”研究材料的动作在这之后变得异常迅速，用了约0.3秒的时间靠近当事人并用其主体覆盖了当事人的上半身，当事人随即失去自主行为能力，目前将该行为暂且定义为捕食行为。</p>
+          <p>在负责人的协助下，研究材料将当事人从收容室放行，当事人随即转到观察室进行检查和后续相关工作。</p>
+          <p>请所有人不要在未经批准的情况下进入收容室，进入收容室后不要做出事先规划以外的动作，以免再次发生类似的事故。</p>
+          <p>事故后续相关资料将在观察整理后更新在异想体档案中，请注意阅读最新版本。</p>
+        </div>
+        <div class="news-foot">研究所　发布于■年■月■■日</div>
+      </article>
+    </section>
+
+    <!-- Daily Record2（与 Daily Record 同格式，无需工号解锁） -->
+    <section class="sb-page" id="sb-daily2">
+      <h2 class="ov-title">Daily Record2</h2>
+      <div class="dr-format" id="dr-format2">
+        <div class="dr-format-title">格式说明：</div>
+        <p>记忆检测——复述今天发生过的任意一件事</p>
+        <p>认知检测1——描述记录时桌上的任意物品，以及一般常识下它的名称</p>
+        <p>认知检测2——我是？</p>
+        <p>时间观念同步——请将今日设备桌面显示的话语写在日记的最后。</p>
+      </div>
+      <div class="dr-viewer" id="dr-viewer2" style="display:block">
+        <div class="diary-body" id="diary2-body"></div>
+        <div class="diary-nav">
+          <button id="diary2-prev">上一篇</button>
+          <span class="diary-page" id="diary2-page">第 1 / 3 篇</span>
+          <button id="diary2-next">下一篇</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>
+</div>
+
+<footer>
+  <span>ZIRP CENTRE — INTERNAL DOCUMENT</span>
+  <span class="blink">● REC</span>
+  <span>访问已记录 · 用户 ID: <span class="redacted">██████</span></span>
+</footer>
+
+<script>
+(function () {
+  var welcome = document.getElementById('welcome-screen');
+  var quiz = document.getElementById('quiz');
+  var errorScreen = document.getElementById('error-screen');
+  var overviewScreen = document.getElementById('overview-screen');
+  var leadScreen = document.getElementById('lead-screen');
+  var submitBtn = document.getElementById('submit-btn');
+  var resultTip = document.getElementById('result-tip');
+  var secretLine = errorScreen.querySelector('.secret-line');
+
+  // 阶段状态机：
+  // 0 = 欢迎页，1 = 答题，2 = 错误提示页（点击弹蓝字），3 = 错误提示（含深蓝文字），
+  // 4 = 重新答题（划去两错项），5 = 再次错误提示页（无蓝字，点击直接回答题页），6 = 项目概览
+  var stage = 0;
+
+  function showOnly(el) {
+    welcome.style.display = 'none';
+    quiz.style.display = 'none';
+    errorScreen.style.display = 'none';
+    overviewScreen.style.display = 'none';
+    leadScreen.style.display = 'none';
+    if (!el) return;
+    // 居中舞台用 flex；答题区是普通文档流，用 block
+    el.style.display = (el === quiz) ? 'block' : 'flex';
+  }
+
+  // 深蓝文字内容（打字机逐字打出）
+  var SECRET_TEXT = '那种方法也并非必要，这只是一个可以穷举有限情形的测试，对于筛选合作方并没有太大的帮助。如果你愿意尝试第二次，我会帮你排除那些更不可行的选择肢。';
+
+  // 打字机：逐字显示
+  var typeTimer = null;
+  function typeText(el, text, speed) {
+    if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+    el.textContent = '';
+    var i = 0;
+    typeTimer = setInterval(function () {
+      i++;
+      el.textContent = text.slice(0, i);
+      if (i >= text.length) { clearInterval(typeTimer); typeTimer = null; }
+    }, speed || 90);
+  }
+
+  // ===== 项目概览页：点击此处 -> 负责人介绍页 =====
+  var toLead = document.getElementById('to-lead');
+  toLead.addEventListener('click', function (e) {
+    e.stopPropagation();
+    showOnly(leadScreen);
+    placeBackBtn();
+  });
+
+  // ===== 负责人页：回退按钮 -> 项目概览页 =====
+  var leadDoc = leadScreen.querySelector('.lead-doc');
+  var leadBack = document.getElementById('lead-back');
+  // 依据居中文档的实际位置放置回退按钮：紧贴文档左边缘外侧，与第一行标题水平
+  function placeBackBtn() {
+    leadBack.style.top = (leadDoc.offsetTop + 40) + 'px';
+    leadBack.style.left = (leadDoc.offsetLeft - 40) + 'px';
+  }
+  leadBack.addEventListener('click', function (e) {
+    e.stopPropagation();
+    showOnly(overviewScreen);
+  });
+  window.addEventListener('resize', function () {
+    if (leadScreen.style.display !== 'none') placeBackBtn();
+  });
+
+  // ===== 负责人页：人像 = 黑色乱码图（随机噪点 + 乱码字符），所有 .lead-portrait 生效 =====
+  function drawPortrait(cv) {
+    var ctx = cv.getContext('2d');
+    var w = cv.width, h = cv.height;
+    // 黑色底 + 随机灰度噪点
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, w, h);
+    for (var i = 0; i < 5200; i++) {
+      var g = Math.floor(Math.random() * 70);
+      ctx.fillStyle = 'rgb(' + g + ',' + g + ',' + g + ')';
+      ctx.fillRect(Math.random() * w, Math.random() * h, 2, 2);
+    }
+    // 叠加乱码字符
+    var chars = '█▓▒░@#%&$§¤Ø×+=?';
+    ctx.font = '12px monospace';
+    for (var j = 0; j < 130; j++) {
+      var c = chars.charAt(Math.floor(Math.random() * chars.length));
+      ctx.fillStyle = 'rgba(' + (100 + Math.floor(Math.random() * 120)) + ',' + (100 + Math.floor(Math.random() * 120)) + ',' + (100 + Math.floor(Math.random() * 120)) + ',0.7)';
+      ctx.fillText(c, Math.random() * w, Math.random() * h);
+    }
+    // 几条干扰亮线
+    for (var k = 0; k < 6; k++) {
+      ctx.strokeStyle = 'rgba(160,160,160,0.25)';
+      ctx.beginPath();
+      var y = Math.random() * h;
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y + (Math.random() * 30 - 15));
+      ctx.stroke();
+    }
+  }
+  document.querySelectorAll('canvas.lead-portrait').forEach(drawPortrait);
+
+  // ===== 负责人页：密码解锁聊天记录（两页状态共享） =====
+  var LOCK_PASSWORD = 'meursault'; // 大小写均可
+  var lockInput = document.getElementById('lock-input');
+  var lockBtn = document.getElementById('lock-btn');
+  var lockError = document.getElementById('lock-error');
+  // 外部负责人页与内部边栏页共用解锁状态：任意一处解开，两处都直接可见
+  function setLeadUnlocked() {
+    var l1 = document.getElementById('chat-lock');
+    var r1 = document.getElementById('chat-records');
+    var l2 = document.querySelector('.sb-chat-lock');
+    var r2 = document.querySelector('.sb-chat-records');
+    if (l1) l1.style.display = 'none';
+    if (r1) r1.style.display = 'block';
+    if (l2) l2.style.display = 'none';
+    if (r2) r2.style.display = 'block';
+  }
+  function tryUnlock() {
+    var val = (lockInput.value || '').trim().toLowerCase();
+    if (val === LOCK_PASSWORD) {
+      setLeadUnlocked();
+    } else {
+      lockError.style.display = 'block';
+      lockInput.value = '';
+      lockInput.focus();
+    }
+  }
+  lockBtn.addEventListener('click', function (e) { e.stopPropagation(); tryUnlock(); });
+  lockInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.stopPropagation(); tryUnlock(); }
+  });
+
+  // ===== 内部入口：红字按序点击 -> 花屏 -> 边栏架构 =====
+  var sidebarApp = document.getElementById('sidebar-app');
+  var glitchOverlay = document.getElementById('glitch-overlay');
+  var redChars = Array.prototype.slice.call(document.querySelectorAll('.red-char'));
+  var charProgress = 0;
+  var entered = false;
+  redChars.forEach(function (span) {
+    span.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (entered) return;
+      var idx = parseInt(span.dataset.idx, 10);
+      if (idx === charProgress + 1) {
+        charProgress++;
+        span.classList.add('hit');
+        if (charProgress === 4) {
+          entered = true;
+          // 花屏特效后切换架构
+          spawnGlitchBlocks();
+          glitchOverlay.classList.add('on');
+          setTimeout(function () {
+            showOnly(null);
+            document.querySelector('main').style.display = 'none';
+            sidebarApp.classList.add('on');
+            switchPage('ab');
+            glitchOverlay.classList.remove('on');
+            glitchOverlay.querySelectorAll('.glitch-block').forEach(function (b) { b.remove(); });
+            // 权限等级降为 3
+            document.getElementById('clearance-level').textContent = 'LEVEL 3 / AMBER';
+          }, 1300);
+        }
+      } else {
+        // 顺序错误：全部重置
+        charProgress = 0;
+        redChars.forEach(function (s) { s.classList.remove('hit'); });
+      }
+    });
+  });
+
+  // 花屏杂色块：大量随机色块闪烁
+  function spawnGlitchBlocks() {
+    var palette = ['#c1121f', '#2e6bd6', '#ffffff', '#0a0a0a', '#7a1020', '#3aa655', '#e8e04d', '#8b5cf6'];
+    for (var i = 0; i < 90; i++) {
+      var b = document.createElement('div');
+      b.className = 'glitch-block';
+      b.style.left = Math.random() * 100 + '%';
+      b.style.top = Math.random() * 100 + '%';
+      b.style.width = (10 + Math.random() * 160) + 'px';
+      b.style.height = (4 + Math.random() * 70) + 'px';
+      b.style.background = palette[Math.floor(Math.random() * palette.length)];
+      b.style.animationDelay = (Math.random() * .4) + 's';
+      b.style.opacity = (.3 + Math.random() * .7).toFixed(2);
+      glitchOverlay.appendChild(b);
+    }
+  }
+
+  // ===== 边栏页面切换 =====
+  function switchPage(name) {
+    document.querySelectorAll('.side-item').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.page === name);
+    });
+    document.querySelectorAll('.sb-page').forEach(function (p) {
+      p.classList.toggle('on', p.id === 'sb-' + name);
+    });
+  }
+  document.querySelectorAll('.side-item').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      switchPage(btn.dataset.page);
+    });
+  });
+
+  // ===== 异想体档案：关键词解锁 =====
+  var abKwBtn = document.getElementById('ab-kw-btn');
+  var abKwInput = document.getElementById('ab-kw-input');
+  function tryAbUnlock() {
+    var v = (abKwInput.value || '').trim();
+    if (v === '害怕' || v === '恐惧' || v === '恐慌') {
+      document.getElementById('ab-kw-lock').style.display = 'none';
+      document.getElementById('ab-locked').style.display = 'block';
+      // 引言揭示：填入输入的关键词
+      document.getElementById('ab-quote').textContent = '“不要' + v + '。' + v + '会让它■■■■■■■■■■。”';
+    } else {
+      document.getElementById('ab-kw-err').style.display = 'block';
+      abKwInput.value = '';
+    }
+  }
+  abKwBtn.addEventListener('click', function (e) { e.stopPropagation(); tryAbUnlock(); });
+  abKwInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.stopPropagation(); tryAbUnlock(); }
+  });
+
+  // ===== Daily Record：日记数据（【——】开头句加粗） =====
+  var DIARIES = [
+    '<p>今天是来到这里的第二天。</p>' +
+    '<p>目前项目的研究材料尚未就位，仍在对收容材料的房间进行检查工作。收容室，目前暂且定为这样的称呼，它的物理尺度为长15米，宽5米，高5米。场所原定是3m的高度，但在得到研究材料的具体数据后，决定加高其层高。</p>' +
+    '<p>同时对收容室的设施进行了一系列检查，包括承重墙以及防弹落地窗口的压力测试，房间的气密性测试等等。</p>' +
+    '<p>出于对研究对象的特点考量，我们给收容室设计了巨大的落地窗口，房间内外能够互相观察，同时整个研究所也配备了特殊的录像装置，能捕捉通过依靠常规光学原理无法收录的情形。</p>' +
+    '<p>到目前为止，我自认为研究所的准备是充分的，但作为负责人，我同时也清楚这里的研究人员缺乏垂直的研究经验。</p>' +
+    '<p>我也是如此。</p>' +
+    '<p>在记录结束时，我看到了桌上的备忘便签。尽管研究所为每个人都配备了电子设备，但我更习惯于使用这样的物品——厚度约为0.05毫米，纸张颜色介于雪地反光与枯草之间偏向前者30%，纹路较为粗糙，人眼能清晰辩识出纤维，用来书写记录任意内容；纸张背面上半部分以附着为目的添加了胶状薄层，但目前使用的这款黏度不太理想，贴上去后平均30小时就会出现翘角，35小时便直接脱落。</p>' +
+    '<p>前面提到过，我是所在研究所的负责人。我对研究所并不存在任何形式的投资关系，而是纯粹的合同雇佣身份，以管理者兼项目推进主导的角色存在于这个架构中。</p>' +
+    '<p>实际上对所要进行的研究项目，虽然事先进行了背景调查，但这些类型的对象个体间存在着巨大的差异，并不能判断背景资料是否有切实的参考意义。我所能做的，便只有用尽量精准且符合逻辑的方案推进项目并发掘其可用性。</p>' +
+    '<p>对于研究所可能产生的意外情况，我也会进行评估与决策。目前来说，最需要维护的便是项目的稳定性，这也是所有判断最高优先级的依据。这点我也会记录在便签上。</p>' +
+    '<p><strong>——如系统出现故障，可联系管理员M024457。</strong></p>',
+
+    '<p>今天是研究对象入驻研究所的第一天，发生的事并没有出乎意料。招募的人员素质参差不齐这一点有目共睹，出现事故的概率自然会提升。</p>' +
+    '<p>目前来看，事故并没有出现较为严重的后果，可以作为研究的参考同步进行观察。当事人是协助研究材料搬运的研究所成员，在搬运完成后没有及时离开收容室，引发了研究材料的过度反应——目前暂时是如此定性的。相对地，研究材料并非无法沟通，虽然它理解的很慢，但能对人做出正面的反应——仅凭我个人的经验。</p>' +
+    '<p>或许是接触方式的不同导致了这种差异。在后续需要着重观察。</p>' +
+    '<p>有时候我会思考同一物质在不同状态下的定义。正如同水杯里的水，在气态或固态下有着不同的名称，但其构成是相同的，只是因为它现在是液体，无色的，没有味道，流动的不具有固定的形状，具有液体的性质而固态是不具有，因此我们称它为水。如果一个个体变成了其他的形态，因此而失去了人性，那它还是它吗？考虑到它曾经是人类，我应该用怎样的情感去看待它？</p>' +
+    '<p>我的概念能被人类这个物种所概括吗？我现在是人类，但如果我也变成了其他形态，我是否还有现在的意识，我又能否称之为我？目前我极力避免在私底下给出这样分类学一般的答案，但在社会中却无法避免需要将自己归类。</p>' +
+    '<p>我可以不属于任何分类的话，我无疑是我。</p>' +
+    '<p><strong>——在未经批准的情况下请不要进入收容室，哪怕只有5秒钟。</strong></p>',
+
+    '<p>我每天都会去看望之前事故的当事人，除了叮嘱他认真写日记以外，外貌变化也是值得关注的。他的精神状态目前很好，期待着离开隔离室的那一天，但以他目前的外貌，或许需要重金为自己配备仿生皮肤且还原之前的面部特征才能重新在外部社会生活——这一点我特别提醒过陪护的人，为了他的情绪稳定，尽量不要谈论他现在的外貌相关的事。</p>' +
+    '<p>整个上半身被染成了黑色，我想这在外形上已经难以被判定为一般人类，虽然内部结构依旧正常。都市有不少经过义体改造或其他改造的人，但那些结构大都会倾向于一个既有的或是有实用价值的模样，如果只是把皮肤涂上黑色，在大部分层面这种变化倾向于“无意义”。我并不是说它本身没有意义（因为意义是基于某种条件而附加的），只是无法看出进行这种变化背后的逻辑或规律，也就是说，我并不能理解研究材料进行这种行为的目的。</p>' +
+    '<p>今天针对夜间巡逻时收容室的情况做了基础调查。原因是前后接班的人员对于收容室中研究对象的描述有所不同。</p>' +
+    '<p>据A说，那时研究材料呈现出人类男性的外形，高度约为185cm，身材较为健壮；而在接班夜勤的B描述中，研究材料则呈现出人类女性的外形且明显身形小巧。</p>' +
+    '<p>研究材料或许具有会变形的特质，毕竟它的外形就并非坚固支撑着那般的形态，因此变成其他模样也不意外。但需要思考的是它为何会变成特定的某些形态。</p>' +
+    '<p>由于我这几天呆在收容室时它和之前的样子并无二致，我倾向于认为它的模样可能会根据他人的主观视角所改变。</p>' +
+    '<p>这种情况并不少见，因为它的原理也很普遍，如同现在桌上手写笔的外壳颜色，不同的人都有不同的描述。如果仅仅说这支笔是绿色，有些人会认为是盛夏街道旁树荫的颜色，有些人则会认为是海的颜色。描述使用的是狭义上的语言，而语言中的词汇是一种需要定义的概念，既然需要定义，则必然存在主体间的差别。即使用更加具体的词汇解释，也只是通过抽象的概念去解释另一个更抽象的概念，无法完美的描摹所见所感，这便是不同主体间交流时存在误差的本质。如果想要尽量准确的描述，必须有比较的对象，通过比较能缩小描述的误差，尽管它并不能完美的复现所见。因此我也对笔的颜色加上比较的对象——更接近于夏日常绿树木成熟叶片的颜色，饱和度较低，颜色更为暗沉，这样或许能变得更为准确，但也并不完全。</p>' +
+    '<p>那么我呢？我对于他人如何描述我，并不那么感兴趣。但我知晓他人对我的看法定然是不同的，甚至异于任何一个我，而我对此无能为力，只能忍受，只能尽量避免将那种焦虑向外投射。他人的想法并不能真正代表我本人，即使将所有他人的目光拼凑在一起也无法拼凑出我，事实上每个个体都无法被语言穷尽叙述。</p>' +
+    '<p>因此我无法对事物做出那样肯定的陈述（原本认为狂妄更为贴切，但这本身也是一种我主观的判断），因为我不情愿自身受到这样的对待，我也不会如此对待其他事物。</p>' +
+    '<p><strong>——留言板已经开放，如果有任何意见或建议可以通过系统进行匿名留言。</strong></p>' +
+    '<p>不过我没预料到的是，他们把这个模块放在了我的档案下，我或许应该找个理由关闭它，但它出于正当诉求，我没有关闭它的逻辑依据。</p>',
+
+    '<p>关于实验材料的外形变化，原因我有了初步的结论。我在收容室的监控里找到了当天的录像，确认了那天晚上他们所见的具体情形。如果预设摄像头为绝对客观视角，那么它的确自己扭曲了外形。</p>' +
+    '<p>而它变化的外形，十分接近于上一个靠近的人类，因此，后半夜B所见到的身影实际上是它对前半夜巡逻的A的模仿，而A所见的，则是它对我的模仿。</p>' +
+    '<p>为何它要执着于模仿他人，目前还没有用来解释的线索，但我白天进行观察工作时，它则一直保持着初次见面的状态。或许在它的视角，以对象更熟悉的某种形态出现对它更有利，但应该不是有利于捕食，这则与近几日研究结论的第二点相关。</p>' +
+    '<p>在安排了一系列的实验后，我和它进行了有限度的接触。它比想象中更加胆怯，具体表现在如果我表现出回绝的倾向，通过一段时间的学习，它会选择放弃自己的行动主动权，呆在收容室固定的地方不再行动，这证明它的确有一定的边界概念；但它一开始并不反感甚至能描述为较为积极的和人类接触。</p>' +
+    '<p>虽然在最开始给的背景资料中它被描述成具有攻击性的个体，但综上所述，它的行为逻辑实际上目的是中立的，目前无法进一步断定是否友善，而且它似乎害怕被拒绝，拒绝这个词是相对准确的，我认为。</p>' +
+    '<p>这也和它在最开始造成事故的表现相悖。因此我安排投放了实验动物，在我不在现场的前提下。通过录像观察，存活的动物为少数，90%都被它囫囵吞下。而在它进行这种行为前，那些动物都做出了明显的应激反应，表现出了具有敌意的肢体语言或是恐慌需要逃离的动作。这种逻辑和之前的事故的确相近。</p>' +
+    '<p>感到恐慌……我认为正是这个原因，这只是初步的推测，也只是基于我自己经历的推测。人对于陌生且缺乏经验或理论去剖析的事物，难以不产生恐慌——诚然这和长期困扰我的情感并不完全相同，但解决方式却是类似的去直面和了解。人对于自己了解或不了解的东西，会将其归纳为自我与他者，所不熟悉的无法理解的事物，概念无法内化，因此成为他者，对他者则会抱有恐惧。就比如这纸巾的印花并不会让我有任何感想，因为它接近于现实中的某种猫科动物——较短的直立耳，长胡须，扁平面部，眼睛占面部比例较大，且我对猫科动物比较熟悉（在过去我养过一段时间猫和狗）；如果它的制作技术更加拙劣，使它看起来介于猫科与软体动物之间，但形状又不太分明，我会突然产生一种陌生感，这种陌生感随即会带来不安。所谓恐惧，大概是这样发生的情感。</p>' +
+    '<p>因此所谓的自我，是所有我所熟悉所认可的概念产生的并集，但我的概念在这个并集之上，尚有我自己无法认知的地方，就像日光投下的阴影，日光不可能照射到每一个角落，包括心灵。正因为如此人需要面对他者，通过面对他者，即使那意味着会带来恐惧，才能接纳自己。</p>' +
+    '<p>似乎写的有些跑题太久了，回归原来的话题，目前对于实验材料的应对措施，这句话适合投放给设施内的所有人——</p>' +
+    '<p><strong>——不要在它面前表现出害怕。</strong></p>'
+  ];
+  var diaryIndex = 0;
+  var diaryBody = document.getElementById('diary-body');
+  var diaryPage = document.getElementById('diary-page');
+  var diaryPrev = document.getElementById('diary-prev');
+  var diaryNext = document.getElementById('diary-next');
+  function renderDiary() {
+    diaryBody.innerHTML = DIARIES[diaryIndex];
+    diaryPage.textContent = '第 ' + (diaryIndex + 1) + ' / ' + DIARIES.length + ' 篇';
+    diaryPrev.disabled = diaryIndex === 0;
+    diaryNext.disabled = diaryIndex === DIARIES.length - 1;
+  }
+  diaryPrev.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (diaryIndex > 0) { diaryIndex--; renderDiary(); }
+  });
+  diaryNext.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (diaryIndex < DIARIES.length - 1) { diaryIndex++; renderDiary(); }
+  });
+
+  // ===== Daily Record2：日记数据（【——】开头句加粗，无需解锁） =====
+  var DIARIES2 = [
+    '<p>我醒来的时候就在这间屋子里，说实话我不太记得之前发生的事情，应该是把研究对象送进收容室的时候发生了什么。刚刚负责人来看了我，告诉我目前身体检查正常，只是需要在观察室观察一段时间，我表示可以理解。</p>' +
+    '<p>说实话我并不想写日记，也不知道是谁安排的这个形式，内容还这么复杂，只有安排这个东西的人才会洋洋洒洒在设备上写一千个字的日记吧！</p>' +
+    '<p>桌上的东西……离开我的工位让我有些难受，下次我要申请把我常用的东西送进来，这样就不用对着这张空桌面发呆了。我要描述东西只能选这张桌子，木头做的，四只脚，桌面是方形，整体刷了白色的漆，用起来比较稳，没有晃。像这种能放东西的都可以叫桌子才对！</p>' +
+    '<p>第二个问题，我只是个到这个地方来打工的倒霉蛋，都市里想挣钱好好过日子的普通人。项目说后面能转正成翼的员工我就来了。</p>' +
+    '<p>最后是复写设备上的一句话：</p>' +
+    '<p><strong>——在未经批准的情况下请不要进入收容室，哪怕只有5秒钟。</strong></p>' +
+    '<p>昨天我进去了？</p>',
+
+    '<p>待了两天，我已经在这个地方有点待不下去了，虽然我提的要求大家都会尽量满足，但氛围还是有点怪怪的。就是那种，所有人过来的时候都在装作不在意你，但是其实在暗自在意你的感觉，太烂了。</p>' +
+    '<p>今天负责人来的时候，我问了他有没有具体出去的时间，他说因为还没有搞清楚研究对象具体的机制，至少还需要一周。</p>' +
+    '<p>好吧好吧。</p>' +
+    '<p>接下来开始完成作业。</p>' +
+    '<p>至少我工位上的东西拿进来了一些可以当作业，比如说这支研究所统一发放的笔。不得不说审美有点老式，这种绿色和我在后巷老家曾经见过的某种虫子体液一样……幸好我跑得快，不然在收尾人来之前就已经死在那里了。从那以后，我养成了对奇怪的东西保持警惕的习惯，换句话说就是，随时准备跑路。呃总之，笔，用来写东西的就是笔。</p>' +
+    '<p>问题1完成了。问题2……</p>' +
+    '<p>没有什么事情干，在这里写点东西消磨时间也挺好的。说实话我都不知道为什么要选择我来这个项目，薪水对我来说开的很慷慨，但我其实压根就没有什么相关……背景，是这么说的吧，所以我是以后勤身份在这里。虽然没来多久，但我有听同事们说过，这里大部分人都还没有家庭，或者两亲失踪，不巧我就是后者，招聘的人应该是看中了这点，觉得出事了也不会有什么消息，不会有收尾人找过来吧。其实我是很惜命的，虽然迄今为止的人生过的不算特别开心，但总有消遣的事可以做。这也算回答问题了，算吧。</p>' +
+    '<p>然后是最后一题：</p>' +
+    '<p><strong>——留言板已经开放，如果有任何意见或建议可以通过系统进行匿名留言。</strong></p>' +
+    '<p>说实话我并不知道他在想什么，我也很难想象这种看起来像是在巢里长大的人脑子里会想些什么，说不定在算计谁也不一定。</p>',
+
+    '<p>他们告诉我要冷静，但我冷静不下来，现在我的手臂上还有血在往下流，隔着这层黑色我还能感觉到血在往下流，但是不不不我不承认它是我的一部分。</p>' +
+    '<p>看看你变成了什么样？当她把镜子递过来的时候我叫了出来，现在喉咙还在冒烟发不出声音。我其实只是有点烦躁，我想出去，我不想呆在隔离室了，然后她嫌我烦了。不知道是谁跑过来和我解释说那天我被那该死的畜牲吃掉以后就变成了这样，我说我控制不住那人和我说要不不要看镜子写写日记什么的分散注意力。</p>' +
+    '<p>但是我没办法停止自己去看镜子变成那副样子我之后还能出去见人吗，我有买保险吗我有治疗的钱吗，他们说是负责人把我救出来而且叮嘱不要和我提发生的事，他是不是真的想把我当试验材料了？？镜子是用来看自己的东西但只要它出现在我的视野里我就会一直想看我自己，那太陌生了黑色的是什么东西我现在能理解之前路过的同事看我的想法了，看得我感觉浑身难受，我想要把那些黑色的地方都划烂真是太恶心了我不承认那是我，我连脸都没有了我还是我吗？</p>' +
+    '<p>现在还有什么办法吗找负责人申请赔偿行不行，我已经把镜子扔了但还是忍不住想现在身上的黑色，只要它在我身上待着一秒我就觉得不自在，我想要把它弄下来，全部，整张的，一条一条的都可以。他们有人被吓哭有人去找绷带了我觉得我应该冷静下来，所以我在这里写日记，可能感觉能好一些。</p>' +
+    '<p><strong>——不要在它面前表现出害怕。</strong></p>' +
+    '<p>这是他昨天群发的对吗？我真是羡慕他还能冷静的说出这种话，让我觉得有点恶心如果我能把现在身上的皮和他互换呢？</p>'
+  ];
+  var diary2Index = 0;
+  var diary2Body = document.getElementById('diary2-body');
+  var diary2Page = document.getElementById('diary2-page');
+  var diary2Prev = document.getElementById('diary2-prev');
+  var diary2Next = document.getElementById('diary2-next');
+  function renderDiary2() {
+    diary2Body.innerHTML = DIARIES2[diary2Index];
+    diary2Page.textContent = '第 ' + (diary2Index + 1) + ' / ' + DIARIES2.length + ' 篇';
+    diary2Prev.disabled = diary2Index === 0;
+    diary2Next.disabled = diary2Index === DIARIES2.length - 1;
+  }
+  renderDiary2();
+  diary2Prev.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (diary2Index > 0) { diary2Index--; renderDiary2(); }
+  });
+  diary2Next.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (diary2Index < DIARIES2.length - 1) { diary2Index++; renderDiary2(); }
+  });
+
+  // 工号解锁屏：日记词语 + 乱码符号，平铺整个页面背景
+  (function scatterWords() {
+    var layer = document.getElementById('dr-words-layer');
+    var words = ['收容室', '备忘便签', '研究材料', '巡逻', '变形', '模仿', '恐慌', '日记', '隔离室', '夜班', '手写笔', '认知', '记忆检测', '时间观念', '负责人', 'M024457', '实验', '边界', '他者', '恐惧', '主观视角', '应激反应', '痕迹', '便签', '棉纤维', '常识', '█▓▒', '▓░▒', 'R▓c0', '▒█?', '记▓录', '检▒测', '◤◢', '▓▓', 'D▓i1y', '█░'];
+    words.forEach(function (w) {
+      var s = document.createElement('span');
+      s.className = 'dr-word';
+      s.textContent = w;
+      s.style.left = (2 + Math.random() * 88) + '%';
+      s.style.top = (2 + Math.random() * 92) + '%';
+      layer.appendChild(s);
+    });
+  })();
+  var drBtn = document.getElementById('dr-btn');
+  var drInput = document.getElementById('dr-input');
+  function tryDrUnlock() {
+    if ((drInput.value || '').trim() === 'M024457') {
+      document.getElementById('dr-unlock').style.display = 'none';
+      document.getElementById('dr-words-layer').style.display = 'none';
+      document.getElementById('dr-format').style.display = 'block';
+      document.getElementById('dr-viewer').style.display = 'block';
+      renderDiary();
+      // 解锁后边栏新增两条
+      document.querySelectorAll('.side-item.hidden').forEach(function (b) {
+        b.classList.remove('hidden');
+      });
+    } else {
+      document.getElementById('dr-err').style.display = 'block';
+      drInput.value = '';
+    }
+  }
+  drBtn.addEventListener('click', function (e) { e.stopPropagation(); tryDrUnlock(); });
+  drInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.stopPropagation(); tryDrUnlock(); }
+  });
+
+  // ===== 内部版负责人介绍：聊天记录密码解锁（Meursault，大小写均可） =====
+  var sbLockBtn = document.querySelector('.sb-lock-btn');
+  var sbLockInput = document.querySelector('.sb-lock-input');
+  function trySbUnlock() {
+    if ((sbLockInput.value || '').trim().toLowerCase() === 'meursault') {
+      setLeadUnlocked();
+    } else {
+      document.querySelector('.sb-lock-error').style.display = 'block';
+      sbLockInput.value = '';
+    }
+  }
+  sbLockBtn.addEventListener('click', function (e) { e.stopPropagation(); trySbUnlock(); });
+  sbLockInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.stopPropagation(); trySbUnlock(); }
+  });
+
+  // 初始：仅欢迎页
+  showOnly(welcome);
+  secretLine.textContent = '';
+
+  // 阶段0 -> 1：点击页面进入答题
+  function welcomeClick() {
+    if (stage !== 0) return;
+    stage = 1;
+    showOnly(quiz);
+  }
+
+  // 选项点击：选中高亮（首次答题 stage 1、返回后 stage 4 均可选择）
+  quiz.querySelectorAll('.quiz-q').forEach(function (q) {
+    q.querySelectorAll('.quiz-opt').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (stage !== 1 && stage !== 4) return;
+        if (btn.classList.contains('crossed')) return; // 划去项不可选
+        q.querySelectorAll('.quiz-opt').forEach(function (b) {
+          b.classList.remove('selected');
+        });
+        btn.classList.add('selected');
+      });
+    });
+  });
+
+  // 提交按钮
+  submitBtn.addEventListener('click', function (e) {
+    e.stopPropagation();
+    if (stage !== 1 && stage !== 4) return;
+
+    var allCorrect = true;
+    quiz.querySelectorAll('.quiz-q').forEach(function (q) {
+      var ans = q.dataset.answer;
+      var sel = q.querySelector('.quiz-opt.selected');
+      if (!sel || sel.dataset.k !== ans) allCorrect = false;
+    });
+
+    if (allCorrect) {
+      resultTip.className = 'result-tip pass';
+      stage = 6;
+      // 5 秒跳转倒计时，每秒更新提示
+      var remain = 5;
+      function renderCountdown() {
+        resultTip.textContent = '您对研究所具有一定的了解，十分感谢您带着和我们合作的意愿完成了问卷，' + remain + ' 秒后自动进入项目概览。';
+      }
+      renderCountdown();
+      var cdTimer = setInterval(function () {
+        remain--;
+        if (remain <= 0) {
+          clearInterval(cdTimer);
+          showOnly(overviewScreen);
+        } else {
+          renderCountdown();
+        }
+      }, 1000);
+    } else {
+      resultTip.textContent = '';
+      resultTip.className = 'result-tip';
+      // 首次答错：stage 2，错误页点击会弹出蓝字；
+      // 划去选项后再次答错：stage 5，错误页不再弹蓝字，点击直接回答题页
+      stage = (stage === 1) ? 2 : 5;
+      showOnly(errorScreen);
+    }
+  });
+
+  // 页面点击驱动阶段推进（错误流程）
+  document.addEventListener('click', function (e) {
+    if (stage === 0) {
+      welcomeClick();
+    } else if (stage === 2) {
+      // 错误提示页 -> 显示深蓝文字（打字机逐字出现）
+      stage = 3;
+      typeText(secretLine, SECRET_TEXT, 55);
+    } else if (stage === 3) {
+      // 深蓝文字页 -> 回到答题，每道题划去两个错误选项
+      stage = 4;
+      enterCrossedQuiz();
+    } else if (stage === 5) {
+      // 再次答错后的错误页（无蓝字）-> 直接回到答题页继续答题
+      stage = 4;
+      enterCrossedQuiz();
+    }
+  });
+
+  // 阶段4：回到答题界面，每道题划去两个错误选项
+  function enterCrossedQuiz() {
+    // 重置错误页（深蓝文字清空，等待下次打字）
+    if (typeTimer) { clearInterval(typeTimer); typeTimer = null; }
+    secretLine.textContent = '';
+    resultTip.textContent = '';
+    resultTip.className = 'result-tip';
+
+    quiz.querySelectorAll('.quiz-q').forEach(function (q) {
+      var ans = q.dataset.answer;
+      // 收集所有错误选项
+      var wrongs = [];
+      q.querySelectorAll('.quiz-opt').forEach(function (b) {
+        b.classList.remove('selected');
+        if (b.dataset.k !== ans) wrongs.push(b);
+      });
+      // 划去前两个错误选项
+      wrongs.slice(0, 2).forEach(function (b) {
+        b.classList.add('crossed');
+        b.disabled = true;
+      });
+    });
+
+    showOnly(quiz);
+  }
+})();
+</script>
+
+</body>
+</html>
