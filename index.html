@@ -803,6 +803,8 @@
     width: 220px;
     text-align: center;
   }
+  /* 占位提示语缩小字距与字号，保证 13 字提示语完整显示（不影响输入时的字距） */
+  .dr-unlock-center input::placeholder { letter-spacing: 1px; font-size: 13px; }
   .dr-unlock-center button {
     background: var(--red);
     border: none;
