@@ -439,9 +439,8 @@
   }
   @keyframes glitchBlockBlink { 0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; } }
 
-  /* 顺序点击命中的红字高亮 */
-  .red-char { transition: all .15s; cursor: pointer; }
-  .red-char.hit { color: var(--red-hi); text-shadow: 0 0 10px var(--red); }
+  /* 顺序点击的红字无任何点击反馈（隐藏解谜入口） */
+  .red-char { cursor: pointer; }
 
   /* ===== 翻转过场动画（内部入口触发，全屏覆盖；所有样式限定在 #flip 内避免污染） ===== */
   #flip {
@@ -621,6 +620,11 @@
   .sb-note-sub { padding-left: 22px; color: var(--text-dim) !important; }
   /* 异想体档案页的小字与正文左对齐（不缩进） */
   #sb-ab .sb-note-sub { padding-left: 0; }
+  /* 观察记录：时期小标题与上文空出两行高（正文行高 2 × 15px = 30px/行；
+     跟在段落默认 12px 下边距后 → 上边距 48px；
+     跟在板块主标题 ov-sub（下边距 24px）后的第一个小标题 → 上边距 36px */
+  #sb-ab .ab-period { margin-top: 48px; }
+  #sb-ab .ov-sub + .ab-period { margin-top: 36px; }
 
   /* 留言板（已暂停使用）：禁用输入区 */
   .msg-disabled {
@@ -1215,10 +1219,9 @@
         <h3 class="ov-sub">一份聊天记录</h3>
         <div id="chat-lock">
           <div class="lock-box">
-            <input type="password" id="lock-input" placeholder="请输入访问密码" autocomplete="off">
+            <input type="password" id="lock-input" placeholder="请输入负责人全名" autocomplete="off">
             <button class="lock-btn" id="lock-btn">解 锁</button>
           </div>
-          <div class="lock-hint">提示：负责人全名</div>
           <div class="lock-error" id="lock-error">密码错误，访问尝试已被记录。</div>
         </div>
         <div class="chat-records" id="chat-records">
@@ -1285,6 +1288,15 @@
             <p>残骸</p>
             <p>从它的内里或是被同化的产物内里出现的黑色物质，通常为液态。用生物质触碰它会导致被污染，用无机质则是安全的，请牢记这一点。</p>
             <p>如果不小心触碰到了它的残骸，请保持平常心，无视它，不要尝试剥离或截除接触的部分。体表的污染和内里的污染并非完全对应相关，越是抗拒，越容易加深内心的污染。</p>
+            <h3 class="ov-sub">观察记录</h3>
+            <p class="ab-period"><strong>第1~4天 观察期</strong></p>
+            <p>行为特征：通过玻璃窗进行观察或做出动作，该实体会做出反馈；能初步理解沟通内容；反应速度逐渐变快，从最初的20分钟左右到5分钟就能做出回应。</p>
+            <p class="ab-period"><strong>第5~11天 同空间观察期</strong></p>
+            <p>行为特征：在察觉有人进入收容室后，该实体会先观察对方的状态，如果正常，则会尝试进行物理接触；由于能理解基础的肢体和口头语言，进行了测试。该实体有一定的可塑性，在经过训练后不会主动尝试接触实验者。</p>
+            <p class="sb-note-sub">-每当他想要进入我周围2m的范围时，我便会离开房间。这样重复直到某一天，它不会主动向我延伸，它只是呆在原地关注着我。</p>
+            <p class="ab-period"><strong>第12~18天 间接接触期</strong></p>
+            <p>行为特征：使用物理防护手段与该实体进行了接触，最开始该实体产生了负面反馈尝试回避，但很快又回到了一开始积极的接触模式。同样这种行为具有可塑性，用类似的训练方法之后它学会了不回应实验者，只是一味地承受实验者对其的接触行为。</p>
+            <p class="sb-note-sub">-它的态度太过温顺，因此我加入了动物实验。那些动物如果表现出激烈的负面情绪，便会被它认为是一种对抗而被攻击。或许是因为我一开始就没有流露出类似的情绪，它才会认为我是可交流的。这并不代表我不害怕它，只是我能忍受心里对陌生事物转向我而产生的恐惧。</p>
             <h3 class="ov-sub">相关记录</h3>
             <p>被观察者日记【请等待正式版更新】</p>
           </div>
@@ -1335,10 +1347,10 @@
 
       <div class="dr-unlock" id="dr-unlock">
         <div class="dr-unlock-center">
-          <div class="dr-q">该记录需要验证工号</div>
-          <input type="text" id="dr-input" placeholder="请输入工号" autocomplete="off">
+          <div class="dr-q">该记录需要身份验证</div>
+          <input type="text" id="dr-input" placeholder="请输入您的工号和4位生日" autocomplete="off">
           <button id="dr-btn">验 证</button>
-          <div class="dr-err" id="dr-err">工号错误，访问尝试已被记录。</div>
+          <div class="dr-err" id="dr-err">验证失败，访问尝试已被记录。</div>
         </div>
       </div>
 
@@ -1374,10 +1386,9 @@
       <h3 class="ov-sub">一份聊天记录</h3>
       <div class="sb-chat-lock">
         <div class="lock-box">
-          <input type="password" class="sb-lock-input" placeholder="请输入访问密码" autocomplete="off">
+          <input type="password" class="sb-lock-input" placeholder="请输入负责人全名" autocomplete="off">
           <button class="lock-btn sb-lock-btn">解 锁</button>
         </div>
-        <div class="lock-hint">提示：负责人全名</div>
         <div class="lock-error sb-lock-error">密码错误，访问尝试已被记录。</div>
       </div>
       <div class="chat-records sb-chat-records">
@@ -1613,8 +1624,8 @@
       if (entered) return;
       var idx = parseInt(span.dataset.idx, 10);
       if (idx === charProgress + 1) {
+        // 无点击高亮：为隐藏解谜入口，点中也不出现任何视觉反馈
         charProgress++;
-        span.classList.add('hit');
         if (charProgress === 4) {
           entered = true;
           // 花屏特效 → 翻转过场动画 → 切换架构
@@ -1627,9 +1638,8 @@
           }, 1300);
         }
       } else {
-        // 顺序错误：全部重置
+        // 顺序错误：全部重置（无视觉反馈）
         charProgress = 0;
-        redChars.forEach(function (s) { s.classList.remove('hit'); });
       }
     });
   });
@@ -2157,7 +2167,7 @@
   var drBtn = document.getElementById('dr-btn');
   var drInput = document.getElementById('dr-input');
   function tryDrUnlock() {
-    if ((drInput.value || '').trim() === 'M024457') {
+    if ((drInput.value || '').trim() === 'M0244570505') {
       document.getElementById('dr-unlock').style.display = 'none';
       document.getElementById('dr-words-layer').style.display = 'none';
       document.getElementById('dr-format').style.display = 'block';
